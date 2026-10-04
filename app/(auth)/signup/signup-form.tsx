@@ -37,8 +37,11 @@ export function SignupForm({ next }: { next: string }) {
         autoComplete="new-password"
         required
         minLength={8}
+        hint="At least 8 characters."
       />
-      <Button disabled={pending}>Create account</Button>
+      <Button disabled={pending}>
+        {pending ? "Creating account…" : "Create account"}
+      </Button>
     </form>
   );
 }

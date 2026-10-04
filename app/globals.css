@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 /* "Scratched off": Lissie's ledger. Plum ink on lilac coat-grey paper, a raised sheet for the list, her amber eyes for
-   focus, checks, and the claw marks through done todos, and her rose nose for overdue and delete. See tech-docs/ui.md. */
+   focus, checks, and the claw marks through done todos, and her rose nose for overdue and delete. See tech-docs/ui.md.
+   --line separates (hairlines between rows); --edge outlines controls and --amber-strong draws focus rings, both at
+   3:1 or more on paper and raised paper. */
 :root {
   color-scheme: light dark;
   --paper: #eeeaf4;
@@ -9,9 +11,14 @@
   --ink: #2a1a3c;
   --muted: #65587a;
   --line: #d6cee3;
+  --edge: #857a99;
   --amber: #e39a2f;
+  --amber-strong: #b06a12;
   --on-amber: #2a1a3c;
   --danger: #b0283f;
+  --claw-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23e39a2f' d='M4 9.5Q49.5 .55 95 3Q49.5 8.95 4 9.5Z'/%3E%3C/svg%3E");
+  --claw-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23e39a2f' d='M2 15Q49.5 5.45 97 8.5Q49.5 15.05 2 15Z'/%3E%3C/svg%3E");
+  --claw-3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23e39a2f' d='M7 20.5Q49.5 12.2 92 14.5Q49.5 19.8 7 20.5Z'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,8 +28,13 @@
     --ink: #f2eef7;
     --muted: #b4a9c6;
     --line: #44375a;
+    --edge: #76698d;
     --amber: #f2b455;
+    --amber-strong: #f2b455;
     --danger: #ff8fa3;
+    --claw-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23f2b455' d='M4 9.5Q49.5 .55 95 3Q49.5 8.95 4 9.5Z'/%3E%3C/svg%3E");
+    --claw-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23f2b455' d='M2 15Q49.5 5.45 97 8.5Q49.5 15.05 2 15Z'/%3E%3C/svg%3E");
+    --claw-3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='%23f2b455' d='M7 20.5Q49.5 12.2 92 14.5Q49.5 19.8 7 20.5Z'/%3E%3C/svg%3E");
   }
 }
 
@@ -32,7 +44,9 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-edge: var(--edge);
   --color-amber: var(--amber);
+  --color-amber-strong: var(--amber-strong);
   --color-on-amber: var(--on-amber);
   --color-danger: var(--danger);
   --font-sans: var(--font-bricolage);
@@ -42,6 +56,13 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
+  caret-color: var(--amber-strong);
+  scrollbar-color: var(--line) transparent;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--amber) 40%, transparent);
+  color: var(--ink);
 }
 
 /* Lissie's voice: Bricolage at its narrowest width and heaviest weight, for her headlines and the wordmark. */
@@ -52,33 +73,74 @@ body {
   line-height: 0.9;
 }
 
-/* The claw marks through a done todo (app/todo-list.tsx): three tapered strokes, scratched in one after the other,
-   left to right, when a todo becomes done while the page is open, and already there when it was done before. */
-.claw-marks path {
-  fill: currentColor;
-  opacity: 0.9;
+/* The claw marks through a done todo (app/todo-list.tsx): three tapered strokes on every line of the title, sized to
+   that line (box-decoration-break gives each line fragment its own background) and under the text, which a halo of
+   the sheet's color keeps readable. They scratch in one after the other, left to right, when a todo becomes done
+   while the page is open, and are already there when it was done before. */
+.claws {
+  padding-block: 0.1em;
+  padding-inline: 0.2em;
+  margin-inline: -0.2em;
+  background: var(--claw-1), var(--claw-2), var(--claw-3);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  text-shadow:
+    0 0 1px var(--paper-raised),
+    0 0 2px var(--paper-raised),
+    0 0 3px var(--paper-raised);
 }
-.claw-marks-drawing path {
-  animation: claw-scratch 160ms cubic-bezier(0.6, 0, 0.3, 1) both;
-}
-.claw-marks-drawing path:nth-child(2) {
-  animation-delay: 70ms;
-}
-.claw-marks-drawing path:nth-child(3) {
-  animation-delay: 140ms;
+.claws-drawing {
+  animation: claw-scratch 300ms linear both;
 }
 @keyframes claw-scratch {
-  from {
-    clip-path: inset(0 100% 0 0);
+  0% {
+    background-size:
+      0% 100%,
+      0% 100%,
+      0% 100%;
   }
-  to {
-    clip-path: inset(0 0 0 0);
+  23% {
+    background-size:
+      44% 100%,
+      0% 100%,
+      0% 100%;
+  }
+  47% {
+    background-size:
+      89% 100%,
+      44% 100%,
+      0% 100%;
+  }
+  53% {
+    background-size:
+      100% 100%,
+      56% 100%,
+      11% 100%;
+  }
+  77% {
+    background-size:
+      100% 100%,
+      100% 100%,
+      56% 100%;
+  }
+  100% {
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .claw-marks-drawing path {
+  .claws-drawing {
     animation: none;
   }
+}
+
+/* An empty date input shows its mm/dd/yyyy format like a placeholder, not like a value. */
+input[type="date"][data-empty]::-webkit-datetime-edit {
+  color: var(--muted);
 }
 
 /* CopilotKit's chat (app/lissie-chat.tsx) reads shadcn tokens on [data-copilotkit]; point them at ours.

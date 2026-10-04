@@ -30,7 +30,7 @@ export function LoginForm({ next }: { next: string }) {
         autoComplete="current-password"
         required
       />
-      <Button disabled={pending}>Sign in</Button>
+      <Button disabled={pending}>{pending ? "Signing in…" : "Sign in"}</Button>
     </form>
   );
 }
