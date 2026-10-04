@@ -16,7 +16,7 @@ All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`a
 Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos.
 Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
 Not built yet: editing a todo's title or due date, and MCP.
-`README.md` is still the create-next-app boilerplate; this file and `tech-docs/` are the project docs.
+`README.md` is still the create-next-app boilerplate; this file, `tech-docs/`, and `PRODUCT.md` (users, purpose, and Lissie's voice, for design work) are the project docs.
 
 ## First-time setup
 
