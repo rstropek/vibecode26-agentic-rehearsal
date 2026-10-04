@@ -7,11 +7,14 @@ import { createTool } from "@mastra/core/tools";
 import {
   addTodoInputSchema,
   addTodoOutputSchema,
+  LISSIE_CATALOG_ID,
   type LISSIE_TOOL_NAMES,
   listTodosInputSchema,
   listTodosOutputSchema,
   setTodoDoneInputSchema,
   setTodoDoneOutputSchema,
+  showProgressInputSchema,
+  showProgressOutputSchema,
 } from "@/lib/lissie-tool-schemas";
 import {
   addTodo as addTodoForUser,
@@ -77,9 +80,91 @@ export const setTodoDone = createTool({
   },
 });
 
+// The progress card, authored once as an A2UI v0.9 component tree: the basic catalog's Column and Text plus the
+// ProgressBar from app/lissie-catalog.tsx. The tree holds no numbers; its components bind to /total, /done, and
+// /open in the surface's data model, which showProgress fills from the todo service.
+const PROGRESS_SURFACE_ID = "todo-progress";
+
+// A data model value inside a formatString template, which A2UI writes as ${/path}.
+function placeholder(path: string): string {
+  return `\${${path}}`;
+}
+
+const progressCard = [
+  {
+    id: "root",
+    component: "Column",
+    children: ["progress-title", "progress-bar", "progress-open"],
+  },
+  {
+    id: "progress-title",
+    component: "Text",
+    variant: "h4",
+    text: "Progress, such as it is",
+  },
+  {
+    id: "progress-bar",
+    component: "ProgressBar",
+    label: "Done",
+    value: { path: "/done" },
+    max: { path: "/total" },
+  },
+  {
+    id: "progress-open",
+    component: "Text",
+    text: {
+      call: "formatString",
+      args: { value: `${placeholder("/open")} still open` },
+    },
+  },
+];
+
+export type TodoProgress = { total: number; done: number; open: number };
+
+// The operations that paint the card for `progress`: create the surface, set the tree, then fill the data model.
+export function progressCardOperations(progress: TodoProgress) {
+  const surfaceId = PROGRESS_SURFACE_ID;
+  return [
+    {
+      version: "v0.9",
+      createSurface: { surfaceId, catalogId: LISSIE_CATALOG_ID },
+    },
+    {
+      version: "v0.9",
+      updateComponents: { surfaceId, components: progressCard },
+    },
+    {
+      version: "v0.9",
+      updateDataModel: { surfaceId, path: "/", value: progress },
+    },
+  ];
+}
+
+// The numbers come from the todo service, never from the model, and the card needs no second model call: the
+// runtime's A2UI middleware finds the operations in the result and paints the surface (lib/copilot-runtime.ts).
+export const showProgress = createTool({
+  id: "showProgress",
+  description:
+    "Show the user a card in the chat with how many of their todos are done and how many are still open. The result holds the same numbers in the card's data model.",
+  inputSchema: showProgressInputSchema,
+  outputSchema: showProgressOutputSchema,
+  execute: async (_input, { requestContext }) => {
+    const todos = await listTodosForUser(userIdFrom(requestContext));
+    const done = todos.filter((todo) => todo.done).length;
+    return {
+      a2ui_operations: progressCardOperations({
+        total: todos.length,
+        done,
+        open: todos.length - done,
+      }),
+    };
+  },
+});
+
 // The keys are the tool names the model calls and the chat renders by (LISSIE_TOOL_NAMES).
 export const lissieTools = {
   listTodos,
   addTodo,
   setTodoDone,
+  showProgress,
 } satisfies Record<keyof typeof LISSIE_TOOL_NAMES, unknown>;

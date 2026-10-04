@@ -6,34 +6,43 @@ import { InMemoryAgentRunner } from "@copilotkit/runtime/v2";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
-// Lissie answers from a script instead of calling OpenRouter; the headers of each model call are kept.
-// "Add <title>" makes her call addTodo, a tool result makes her comment on it, and anything else gets "Meow.".
+// Lissie answers from a script instead of calling OpenRouter; the headers and tool names of each model call are kept.
+// "Add <title>" makes her call addTodo, "How am I doing?" showProgress, a tool result makes her comment on it, and
+// anything else gets "Meow.".
 const modelCallHeaders = vi.hoisted(() => [] as unknown[]);
+const modelCallTools = vi.hoisted(() => [] as string[][]);
 vi.mock("@/lib/lissie-model", async () => {
   const { MastraLanguageModelV2Mock } = await import(
     "@mastra/core/test-utils/llm-mock"
   );
   return {
     lissieModel: new MastraLanguageModelV2Mock({
-      doStream: async ({ prompt, headers }) => {
+      doStream: async ({ prompt, headers, tools }) => {
         modelCallHeaders.push(headers);
+        modelCallTools.push((tools ?? []).map((tool) => tool.name));
         const last = prompt.at(-1);
-        const said =
+        const said = (
           last?.role === "user"
             ? last.content.flatMap((p) => (p.type === "text" ? [p.text] : []))
-            : [];
-        const title = /^Add (.+)$/.exec(said.join(""))?.[1];
+            : []
+        ).join("");
+        const title = /^Add (.+)$/.exec(said)?.[1];
+        const toolCall = title
+          ? { toolName: "addTodo", input: { title } }
+          : said === "How am I doing?"
+            ? { toolName: "showProgress", input: {} }
+            : undefined;
         const reply =
           last?.role === "tool" ? "Milk. For a human. Fine." : "Meow.";
         const parts = [
           { type: "stream-start" as const, warnings: [] },
-          title
+          toolCall
             ? [
                 {
                   type: "tool-call" as const,
                   toolCallId: `call-${crypto.randomUUID()}`,
-                  toolName: "addTodo",
-                  input: JSON.stringify({ title }),
+                  toolName: toolCall.toolName,
+                  input: JSON.stringify(toolCall.input),
                 },
               ]
             : [
@@ -43,7 +52,9 @@ vi.mock("@/lib/lissie-model", async () => {
               ],
           {
             type: "finish" as const,
-            finishReason: title ? ("tool-calls" as const) : ("stop" as const),
+            finishReason: toolCall
+              ? ("tool-calls" as const)
+              : ("stop" as const),
             usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
           },
         ].flat();
@@ -459,5 +470,91 @@ describe("Lissie's tools", () => {
 
     expect(await stored()).toBe((before ?? 0) + 2);
     expect(await service.listTodos(carol.id)).toHaveLength(1);
+  });
+});
+
+describe("the progress card", () => {
+  let dave: User;
+  let live: AgUiEvent[];
+  let tools: string[] | undefined;
+
+  beforeAll(async () => {
+    dave = await signUp("Dave");
+    const service = await import("@/lib/todo-service");
+    const milk = await service.addTodo(dave.id, { title: "Buy milk" });
+    await service.addTodo(dave.id, { title: "Feed the cat" });
+    await service.updateTodo(dave.id, milk.id, { done: true });
+    const calls = modelCallTools.length;
+    // What the chat sends with its catalog, plus a request for the generating tool, which the runtime must refuse.
+    live = await events(
+      await call(dave, "POST", "/agent/lissie/run", {
+        ...runInput(dave.thread, "How am I doing?"),
+        forwardedProps: { a2uiCatalogAvailable: true, injectA2UITool: true },
+      }),
+    );
+    tools = modelCallTools[calls];
+  });
+
+  test("the model gets Lissie's tools and nothing that generates UI", () => {
+    expect(tools?.toSorted()).toEqual([
+      "addTodo",
+      "listTodos",
+      "setTodoDone",
+      "showProgress",
+    ]);
+  });
+
+  test("showProgress's result paints an A2UI surface with the user's numbers", () => {
+    const start = live.find((event) => event.type === "TOOL_CALL_START");
+    expect(start).toMatchObject({ toolCallName: "showProgress" });
+    const surfaces = live.filter((event) => event.type === "ACTIVITY_SNAPSHOT");
+    expect(surfaces).toEqual([
+      expect.objectContaining({
+        messageId: `a2ui-surface-${start?.toolCallId}`,
+        activityType: "a2ui-surface",
+        content: {
+          a2ui_operations: expect.arrayContaining([
+            expect.objectContaining({
+              updateDataModel: expect.objectContaining({
+                value: { total: 2, done: 1, open: 1 },
+              }),
+            }),
+          ]),
+        },
+      }),
+    ]);
+  });
+
+  test("survives a restart: replay puts the same surface after the result, and the next turn accepts it", async () => {
+    new InMemoryAgentRunner().clearThreads();
+    const replay = await events(
+      await call(dave, "POST", "/agent/lissie/connect", runInput(dave.thread)),
+    );
+    const history = replay.find(
+      (event) => event.type === "MESSAGES_SNAPSHOT",
+    )?.messages;
+
+    const surface = live.find((event) => event.type === "ACTIVITY_SNAPSHOT");
+    expect(history).toEqual([
+      expect.objectContaining({ role: "user", content: "How am I doing?" }),
+      expect.objectContaining({ role: "assistant" }),
+      expect.objectContaining({ role: "tool" }),
+      {
+        id: surface?.messageId,
+        role: "activity",
+        activityType: "a2ui-surface",
+        content: surface?.content,
+      },
+      expect.objectContaining({ role: "assistant" }),
+    ]);
+
+    const next = runInput(dave.thread, "What next?");
+    const run = await events(
+      await call(dave, "POST", "/agent/lissie/run", {
+        ...next,
+        messages: [...(history as unknown[]), ...next.messages],
+      }),
+    );
+    expect(run.map((event) => event.type)).toContain("RUN_FINISHED");
   });
 });

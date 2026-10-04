@@ -111,7 +111,16 @@ export function createLissieHandler(
         // The only way the user id reaches Lissie's tools (lib/lissie-tools.ts); the bridge adds the client's AG-UI
         // context under its own "ag-ui" key and never touches these.
         requestContext: lissieRequestContext(userId),
+        // Never inject `generate_a2ui`, even when a request's forwardedProps ask for it.
+        a2ui: { injectA2UITool: false },
       }),
+    },
+    // The A2UI middleware paints the surfaces Lissie's tools return (showProgress). No generated surfaces: it injects
+    // no render tool, which the chat's catalog would otherwise switch on, and treats no streamed tool call as one.
+    a2ui: {
+      agents: [LISSIE_AGENT_ID],
+      injectA2UITool: false,
+      a2uiToolNames: [],
     },
     runner: new LissieRunner(userId),
     // By default the runtime forwards `authorization` and `x-*` request headers to the agent, and the Mastra

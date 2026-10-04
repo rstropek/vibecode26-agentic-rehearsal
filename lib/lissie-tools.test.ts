@@ -2,8 +2,10 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { A2uiMessageSchema, MessageProcessor } from "@a2ui/web_core/v0_9";
 import { RequestContext } from "@mastra/core/request-context";
 import { noopObserve } from "@mastra/core/tools";
+import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import {
   afterAll,
@@ -14,7 +16,13 @@ import {
   test,
   vi,
 } from "vitest";
-import { user } from "@/db/schema";
+import { z } from "zod";
+import { lissieCatalog } from "@/app/lissie-catalog";
+import { todos, user } from "@/db/schema";
+import {
+  LISSIE_CATALOG_ID,
+  showProgressOutputSchema,
+} from "@/lib/lissie-tool-schemas";
 
 // Lissie's tool executors against a temp database, with the request context the runtime builds from the session.
 // Every case has two users: Alice's context must never reach Bob's todos.
@@ -174,6 +182,98 @@ describe("setTodoDone", () => {
   });
 });
 
+describe("showProgress", () => {
+  const bindingSchema = z.object({ path: z.string() });
+
+  // Every number anywhere in a component tree, which should have none: the card binds its numbers.
+  function numbersIn(value: unknown): number[] {
+    if (typeof value === "number") return [value];
+    if (Array.isArray(value)) return value.flatMap(numbersIn);
+    if (value && typeof value === "object") {
+      return Object.values(value).flatMap(numbersIn);
+    }
+    return [];
+  }
+
+  test("returns well-formed A2UI whose numbers match the user's rows", async () => {
+    const milk = await service.addTodo(alice, { title: "Buy milk" });
+    await service.addTodo(alice, { title: "Feed the cat" });
+    await service.addTodo(alice, { title: "Call the vet" });
+    await service.updateTodo(alice, milk.id, { done: true });
+    await service.addTodo(bob, { title: "Bob's todo" });
+
+    const result = showProgressOutputSchema.parse(
+      await tools.showProgress.execute?.({}, as(alice)),
+    );
+    const operations = result.a2ui_operations.map((operation) =>
+      A2uiMessageSchema.parse(operation),
+    );
+
+    // The spec's order: create the surface in the chat's catalog, set the tree, fill the data model.
+    const [create, update, data] = operations;
+    if (
+      !("createSurface" in create) ||
+      !("updateComponents" in update) ||
+      !("updateDataModel" in data)
+    ) {
+      throw new Error(
+        "expected createSurface, updateComponents, updateDataModel",
+      );
+    }
+    expect(operations).toHaveLength(3);
+    expect(create.createSurface.catalogId).toBe(LISSIE_CATALOG_ID);
+
+    // Every component is in the catalog, valid for it, and reachable from the one root.
+    const { components } = update.updateComponents;
+    const ids = new Set(components.map((component) => component.id));
+    expect(ids.has("root")).toBe(true);
+    for (const { id, component, ...props } of components) {
+      const api = lissieCatalog.components.get(component);
+      expect(api, `${id} is a ${component}`).toBeDefined();
+      expect(api?.schema.safeParse(props).success, id).toBe(true);
+      const children = z.array(z.string()).safeParse(props.children);
+      for (const child of children.data ?? [])
+        expect(ids.has(child)).toBe(true);
+    }
+    expect(numbersIn(components)).toEqual([]);
+
+    // Alice's rows, counted here independently of the tool.
+    const rows = await db.select().from(todos).where(eq(todos.userId, alice));
+    const done = rows.filter((row) => row.done).length;
+    const expected = { total: rows.length, done, open: rows.length - done };
+    expect(expected).toEqual({ total: 3, done: 1, open: 2 });
+
+    // The chat's processor accepts the operations, and the bar's bindings resolve to those numbers.
+    const processor = new MessageProcessor([lissieCatalog]);
+    processor.processMessages(operations);
+    const surface = processor.model.getSurface(create.createSurface.surfaceId);
+    expect(surface?.dataModel.get("/")).toEqual(expected);
+    const bar = components.find(
+      (component) => component.component === "ProgressBar",
+    );
+    expect(surface?.dataModel.get(bindingSchema.parse(bar?.value).path)).toBe(
+      expected.done,
+    );
+    expect(surface?.dataModel.get(bindingSchema.parse(bar?.max).path)).toBe(
+      expected.total,
+    );
+  });
+
+  test("an empty list is zero of zero", async () => {
+    const result = showProgressOutputSchema.parse(
+      await tools.showProgress.execute?.({}, as(alice)),
+    );
+
+    expect(result.a2ui_operations).toContainEqual(
+      expect.objectContaining({
+        updateDataModel: expect.objectContaining({
+          value: { total: 0, done: 0, open: 0 },
+        }),
+      }),
+    );
+  });
+});
+
 describe("without a signed-in user", () => {
   test("every tool refuses to run", async () => {
     await service.addTodo(alice, { title: "Feed the cat" });
@@ -192,6 +292,9 @@ describe("without a signed-in user", () => {
     await expect(
       tools.setTodoDone.execute?.({ id: todo.id, done: true }, nobody),
     ).rejects.toThrow("signed-in user");
+    await expect(tools.showProgress.execute?.({}, nobody)).rejects.toThrow(
+      "signed-in user",
+    );
     expect(await service.listTodos(alice)).toHaveLength(1);
   });
 });

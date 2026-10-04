@@ -16,6 +16,7 @@ export const LISSIE_TOOL_NAMES = {
   listTodos: "listTodos",
   addTodo: "addTodo",
   setTodoDone: "setTodoDone",
+  showProgress: "showProgress",
 } as const;
 
 export const listTodosInputSchema = todoFilterSchema;
@@ -33,3 +34,13 @@ export const setTodoDoneOutputSchema = z.union([
   z.object({ todo: todoSchema }),
   errorBodySchema,
 ]);
+
+// The catalog the progress card is rendered with: the browser registers it under this id (app/lissie-catalog.tsx)
+// and the tool's createSurface names it, so the two must match.
+export const LISSIE_CATALOG_ID = "https://todo-cat.dev/a2ui/lissie-catalog";
+
+export const showProgressInputSchema = z.object({});
+// A2UI operations in the container the runtime's A2UI middleware looks for in a tool result.
+export const showProgressOutputSchema = z.object({
+  a2ui_operations: z.array(z.record(z.string(), z.unknown())),
+});
