@@ -6,16 +6,56 @@ import { InMemoryAgentRunner } from "@copilotkit/runtime/v2";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
-// Lissie answers with a canned reply instead of calling OpenRouter; the headers of each model call are kept.
+// Lissie answers from a script instead of calling OpenRouter; the headers of each model call are kept.
+// "Add <title>" makes her call addTodo, a tool result makes her comment on it, and anything else gets "Meow.".
 const modelCallHeaders = vi.hoisted(() => [] as unknown[]);
 vi.mock("@/lib/lissie-model", async () => {
-  const { createMockModel } = await import("@mastra/core/test-utils/llm-mock");
+  const { MastraLanguageModelV2Mock } = await import(
+    "@mastra/core/test-utils/llm-mock"
+  );
   return {
-    lissieModel: createMockModel({
-      mockText: "Meow.",
-      version: "v2",
-      spyStream: (call: { headers?: unknown }) =>
-        modelCallHeaders.push(call.headers),
+    lissieModel: new MastraLanguageModelV2Mock({
+      doStream: async ({ prompt, headers }) => {
+        modelCallHeaders.push(headers);
+        const last = prompt.at(-1);
+        const said =
+          last?.role === "user"
+            ? last.content.flatMap((p) => (p.type === "text" ? [p.text] : []))
+            : [];
+        const title = /^Add (.+)$/.exec(said.join(""))?.[1];
+        const reply =
+          last?.role === "tool" ? "Milk. For a human. Fine." : "Meow.";
+        const parts = [
+          { type: "stream-start" as const, warnings: [] },
+          title
+            ? [
+                {
+                  type: "tool-call" as const,
+                  toolCallId: `call-${crypto.randomUUID()}`,
+                  toolName: "addTodo",
+                  input: JSON.stringify({ title }),
+                },
+              ]
+            : [
+                { type: "text-start" as const, id: "text-1" },
+                { type: "text-delta" as const, id: "text-1", delta: reply },
+                { type: "text-end" as const, id: "text-1" },
+              ],
+          {
+            type: "finish" as const,
+            finishReason: title ? ("tool-calls" as const) : ("stop" as const),
+            usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+          },
+        ].flat();
+        return {
+          stream: new ReadableStream({
+            start(controller) {
+              for (const part of parts) controller.enqueue(part);
+              controller.close();
+            },
+          }),
+        };
+      },
     }),
   };
 });
@@ -306,5 +346,118 @@ describe("the user's own thread", () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ stopped: false });
+  });
+});
+
+describe("Lissie's tools", () => {
+  let carol: User;
+  let live: AgUiEvent[];
+
+  beforeAll(async () => {
+    carol = await signUp("Carol");
+    live = await events(
+      await call(
+        carol,
+        "POST",
+        "/agent/lissie/run",
+        runInput(carol.thread, "Add buy milk"),
+      ),
+    );
+  });
+
+  test("act for the signed-in user from the session, and only for them", async () => {
+    const service = await import("@/lib/todo-service");
+    const start = live.find((event) => event.type === "TOOL_CALL_START");
+    expect(start).toMatchObject({ toolCallName: "addTodo" });
+    const result = live.find((event) => event.type === "TOOL_CALL_RESULT");
+    expect(JSON.parse(String(result?.content))).toMatchObject({
+      todo: { title: "buy milk", done: false },
+    });
+
+    expect(await service.listTodos(carol.id)).toEqual([
+      expect.objectContaining({ title: "buy milk" }),
+    ]);
+    expect(
+      (await service.listTodos(bob.id)).map((todo) => todo.title),
+    ).not.toContain("buy milk");
+  });
+
+  test("calls survive a restart: replay rebuilds the messages the live run streamed, with the same ids", async () => {
+    new InMemoryAgentRunner().clearThreads();
+    const replay = await events(
+      await call(
+        carol,
+        "POST",
+        "/agent/lissie/connect",
+        runInput(carol.thread),
+      ),
+    );
+    const snapshot = replay.find((event) => event.type === "MESSAGES_SNAPSHOT");
+
+    const start = live.find((event) => event.type === "TOOL_CALL_START");
+    const comment = live.find((event) => event.type === "TEXT_MESSAGE_START");
+    expect(snapshot?.messages).toEqual([
+      expect.objectContaining({ role: "user", content: "Add buy milk" }),
+      expect.objectContaining({
+        id: start?.parentMessageId,
+        role: "assistant",
+        toolCalls: [
+          {
+            id: start?.toolCallId,
+            type: "function",
+            function: {
+              name: "addTodo",
+              arguments: JSON.stringify({ title: "buy milk" }),
+            },
+          },
+        ],
+      }),
+      expect.objectContaining({
+        role: "tool",
+        toolCallId: start?.toolCallId,
+        content: expect.stringContaining('"title":"buy milk"'),
+      }),
+      expect.objectContaining({
+        id: comment?.messageId,
+        role: "assistant",
+        content: "Milk. For a human. Fine.",
+      }),
+    ]);
+  });
+
+  test("the next turn sends replayed history back without storing it twice or rerunning the tool", async () => {
+    const service = await import("@/lib/todo-service");
+    const memory = await lissie.getMemory();
+    const stored = async () =>
+      (
+        await memory?.recall({
+          threadId: carol.thread,
+          resourceId: carol.id,
+          perPage: false,
+        })
+      )?.messages.length;
+    const before = await stored();
+    const replay = await events(
+      await call(
+        carol,
+        "POST",
+        "/agent/lissie/connect",
+        runInput(carol.thread),
+      ),
+    );
+    const history = replay.find(
+      (event) => event.type === "MESSAGES_SNAPSHOT",
+    )?.messages;
+
+    const next = runInput(carol.thread, "What next?");
+    await events(
+      await call(carol, "POST", "/agent/lissie/run", {
+        ...next,
+        messages: [...(history as unknown[]), ...next.messages],
+      }),
+    );
+
+    expect(await stored()).toBe((before ?? 0) + 2);
+    expect(await service.listTodos(carol.id)).toHaveLength(1);
   });
 });

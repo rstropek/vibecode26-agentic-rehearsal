@@ -12,9 +12,9 @@ around it. Hexagonal (ports and adapters), without the ceremony.
  CLI and stdio MCP ──▶ REST /api/todos     contract/ (@todo-cat/contract, zod)
 ```
 
-Built so far: the service, the REST adapter, the CLI, and Lissie's chat without tools
-([agent.md](agent.md)). Pages show no todos yet, and agent tools and MCP are planned; the
-rules below apply to them when they arrive.
+Built so far: the service, the REST adapter, the CLI, Lissie's chat with her tools
+([agent.md](agent.md)), and a read-only list on `/`. MCP is planned; the rules below apply
+to it when it arrives.
 
 ## The todo service
 
@@ -52,10 +52,13 @@ rules below apply to them when they arrive.
 - **REST** (`/api/todos`): for non-browser clients. Bearer token or session cookie;
   see [rest-api.md](rest-api.md).
 - **CLI** (`cli/`): a client of the REST API, never of the database; see [cli.md](cli.md).
-- **Pages** (planned): Server Components and Server Actions that call the service
-  directly, not the REST API.
-- **Agent tools** (planned): call the service directly. The user id comes from the
-  server session, never from a tool argument the model fills in.
+- **Pages**: Server Components and Server Actions that call the service directly, not the
+  REST API. So far `/` reads the list for the sidebar; Lissie is the browser's only write path.
+- **Agent tools** (`lib/lissie-tools.ts`): call the service directly. The user id comes from
+  the server session through Mastra's request context, never from a tool argument the model
+  fills in. Mastra validates tool input against the contract schema before the executor runs
+  and returns the error to the model, so the tools skip `parseInput`; a `TodoError` becomes
+  the contract's error body as the tool result. See [agent.md](agent.md).
 - **MCP** (planned): over stdio inside the CLI (a REST client again), over HTTP inside the
   app (calls the service, like the REST routes).
 
