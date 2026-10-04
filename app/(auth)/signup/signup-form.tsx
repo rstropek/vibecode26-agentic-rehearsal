@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 
-export function SignupForm() {
+export function SignupForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(
     signUp,
     {},
   );
   return (
     <form action={action} className="flex flex-col gap-5">
+      <input type="hidden" name="next" value={next} />
       <FormError>{state.error}</FormError>
       <Field
         label="Name"

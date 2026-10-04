@@ -11,14 +11,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # todo-cat
 
 A to-do list web app whose lists are kept by Lissie, a cat with attitude (an AI agent, coming later).
-Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI, still empty).
-All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it, while the CLI and agent tools are not built yet.
+Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans).
+All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that, while agent tools are not built yet.
 
 ## Commands
 
 - `npm install` installs the root app and both workspaces.
 - `npm run dev` starts the dev server on http://localhost:3000.
-- `npm run build` creates a production build.
+- `npm run build` creates a production build of the app and bundles the CLI into `cli/dist/`.
+- `npx todo-cat --help` runs the CLI against `TODO_CAT_URL` (default http://localhost:3000); `npm run build -w cli` rebuilds it.
 - `npm test` runs the Vitest unit and integration tests once.
 - `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
 - `npm run db:generate` turns schema changes in `db/schema.ts` into a migration in `db/migrations/`.
@@ -28,7 +29,7 @@ All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`a
 - `npm run auth:generate` regenerates Better Auth's Drizzle tables in `db/auth-schema.ts` after auth plugins or options change.
 - `npm run lint` runs `biome check` (lint, format, import order).
 - `npm run typecheck` generates Next.js route types and type-checks all workspaces.
-- `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) and prints only what failed.
+- `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) across the app and both workspaces and prints only what failed.
 - `npx biome check --write` applies Biome's safe fixes and formatting.
 
 ## Definition of done
@@ -65,6 +66,7 @@ Index:
 - [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
+- [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its device-flow login and `/device` approval page, output and exit-code conventions, build, and tests.
 
 ## Keeping this map current
 

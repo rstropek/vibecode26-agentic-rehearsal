@@ -14,7 +14,7 @@
 
 ## QA script
 
-- `scripts/qa.sh` (`npm run qa`) is the single gate for agents, humans, and CI: Biome, typecheck, production build, Vitest, Playwright, in that order.
+- `scripts/qa.sh` (`npm run qa`) is the single gate for agents, humans, and CI: Biome, typecheck, production build (app and CLI), Vitest, Playwright, in that order.
 - Every section runs even after an earlier one fails, so one run reports all problems at once.
 - Passing sections print one PASS line; failing sections print their full output, then a summary lists every section and the exit code is 1.
 - The complete output of all sections goes to `.qa/qa.log` (gitignored); set `QA_LOG` to write it elsewhere.
@@ -42,11 +42,12 @@
 - E2E runs against `next dev` instead of a production build because it starts faster and needs no build step.
 - The e2e server shares nothing with `npm run dev` or another checkout running at the same time: it asks the OS for a free port, builds into its own dist dir, gets `DATABASE_URL` pointing at a fresh temp file that `drizzle-kit migrate` sets up before `next dev` starts, gets `BETTER_AUTH_URL` set to its own port, and never reuses an existing server.
 - Override these with `E2E_PORT`, `E2E_DIST_DIR` (default `.next-e2e`), and `E2E_DATABASE_URL`; see `playwright.config.ts`.
+- The CLI integration test (`cli/src/cli.test.ts`) starts its own `next dev` the same way, on a spare port with a temp database and the dist dir `.next-cli-test`; see [cli.md](cli.md).
 
 ## Gotchas
 
-- Next.js 16 allows only one `next dev` per dist directory and exits if a second one starts, so the e2e server builds into `.next-e2e/` via the `NEXT_DIST_DIR` env var read in `next.config.ts`.
-- `next dev` adds the type paths of its dist directory to `tsconfig.json` and reformats the file, which is why the `.next-e2e` includes are committed there.
+- Next.js 16 allows only one `next dev` per dist directory and exits if a second one starts, so the e2e server builds into `.next-e2e/` and the CLI test server into `.next-cli-test/`, via the `NEXT_DIST_DIR` env var read in `next.config.ts`.
+- `next dev` adds the type paths of its dist directory to `tsconfig.json` and reformats the file, which is why the `.next-e2e` and `.next-cli-test` includes are committed there.
 - Playwright re-evaluates its config in each worker process, so the port and database path are stored in `E2E_*` env vars once and inherited.
 - Next.js loads `.env` without overriding variables already set, so the e2e `DATABASE_URL` and `BETTER_AUTH_URL` win over the ones in `.env`.
 - A non-default `E2E_DIST_DIR` makes `next dev` add that folder's type paths to `tsconfig.json`; don't commit that change.

@@ -6,14 +6,14 @@
 - `lib/auth.ts` builds the `auth` instance on the Drizzle `db` from `lib/db.ts`; Better Auth reads `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` from the environment.
 - `app/api/auth/[...all]/route.ts` mounts Better Auth's HTTP API under `/api/auth/*`, which the CLI and later clients call.
 - Plugins: `bearer` (the REST API and the CLI send `Authorization: Bearer <session token>`), `deviceAuthorization` (the CLI logs in like `gh auth login`), and `nextCookies` last.
-- The device flow accepts only the client id `todo-cat-cli` and points users at `/device`; that page and the CLI client do not exist yet.
+- The device flow accepts only the client id `todo-cat-cli` and points users at `/device`, where they approve the CLI's login; see [cli.md](cli.md).
 
 ## The one session reader
 
 - `getUserId(headers)` in `lib/session.ts` maps a request's headers to the signed-in user's id, from the session cookie or a bearer token, or returns null.
 - Every adapter (pages, REST, agent tools, MCP) calls it; nothing else calls `auth.api.getSession`, so changing how sessions are resolved touches one function.
 - Pages pass `await headers()`, route handlers pass `request.headers`; anything else about the user is loaded from the database by id (see `app/page.tsx`).
-- `/` redirects to `/login` without a session; `/login` and `/signup` redirect to `/` with one.
+- `/` redirects to `/login` without a session; `/login` and `/signup` redirect to `/` with one, or to their `?next=` path, which `safeNext` (`lib/safe-next.ts`) limits to this site.
 
 ## Pages and forms
 

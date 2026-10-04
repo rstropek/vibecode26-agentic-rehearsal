@@ -4,6 +4,7 @@ import { APIError } from "better-auth/api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { safeNext } from "@/lib/safe-next";
 
 // What a sign-up or sign-in form shows after a failed attempt; the password is never sent back.
 export type AuthFormState = { error?: string; name?: string; email?: string };
@@ -29,7 +30,7 @@ export async function signUp(
     if (error instanceof APIError) return { error: error.message, name, email };
     throw error;
   }
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function signIn(
@@ -46,7 +47,7 @@ export async function signIn(
     if (error instanceof APIError) return { error: error.message, email };
     throw error;
   }
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function signOut() {
