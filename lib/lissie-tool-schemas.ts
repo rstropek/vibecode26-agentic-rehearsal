@@ -36,11 +36,15 @@ export const setTodoDoneOutputSchema = z.union([
 ]);
 
 // The catalog the progress card is rendered with: the browser registers it under this id (app/lissie-catalog.tsx)
-// and the tool's createSurface names it, so the two must match.
+// and the card's createSurface names it (lib/lissie-cards.ts), so the two must match.
 export const LISSIE_CATALOG_ID = "https://todo-cat.dev/a2ui/lissie-catalog";
 
 export const showProgressInputSchema = z.object({});
-// A2UI operations in the container the runtime's A2UI middleware looks for in a tool result.
+// Only the numbers: the card is built from them outside the result (lib/lissie-cards.ts), so the model and memory
+// never carry its component tree.
+const countSchema = z.number().int().nonnegative();
 export const showProgressOutputSchema = z.object({
-  a2ui_operations: z.array(z.record(z.string(), z.unknown())),
+  total: countSchema,
+  done: countSchema,
+  open: countSchema,
 });

@@ -50,8 +50,9 @@ function Surface({
   return <A2UIRenderer surfaceId="s" />;
 }
 
-test("the catalog's ProgressBar reads its numbers from the data model", async () => {
-  const operations = [
+// A progress card whose bar binds label, value, and max to /label, /done, and /total, filled with `data`.
+function progressOperations(data: Record<string, unknown>) {
+  return [
     {
       version: "v0.9",
       createSurface: { surfaceId: "s", catalogId: LISSIE_CATALOG_ID },
@@ -76,10 +77,14 @@ test("the catalog's ProgressBar reads its numbers from the data model", async ()
       updateDataModel: {
         surfaceId: "s",
         path: "/",
-        value: { label: "Done", done: 3, total: 8 },
+        value: data,
       },
     },
   ];
+}
+
+test("the catalog's ProgressBar reads its numbers from the data model", async () => {
+  const operations = progressOperations({ label: "Done", done: 3, total: 8 });
 
   render(
     <A2UIProvider catalog={lissieCatalog}>
@@ -89,4 +94,18 @@ test("the catalog's ProgressBar reads its numbers from the data model", async ()
 
   const bar = await screen.findByRole("progressbar", { name: "Done" });
   expect(bar.getAttribute("aria-valuetext")).toBe("3 of 8");
+});
+
+test("a label bound to nothing still leaves the bar named", async () => {
+  const operations = progressOperations({ done: 3, total: 8 });
+
+  render(
+    <A2UIProvider catalog={lissieCatalog}>
+      <Surface operations={operations} />
+    </A2UIProvider>,
+  );
+
+  const bar = await screen.findByRole("progressbar", { name: "Progress" });
+  expect(bar.getAttribute("aria-valuetext")).toBe("3 of 8");
+  expect(screen.getByText("Progress")).toBeTruthy();
 });

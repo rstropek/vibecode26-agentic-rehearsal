@@ -206,6 +206,30 @@ describe("listTodos", () => {
   });
 });
 
+describe("countTodos", () => {
+  test("counts the user's todos, done and open, and nobody else's", async () => {
+    const milk = await service.addTodo(alice, { title: "Buy milk" });
+    await service.addTodo(alice, { title: "Feed the cat" });
+    await service.addTodo(alice, { title: "Call the vet" });
+    await service.updateTodo(alice, milk.id, { done: true });
+    await service.addTodo(bob, { title: "Bob's todo" });
+
+    expect(await service.countTodos(alice)).toEqual({
+      total: 3,
+      done: 1,
+      open: 2,
+    });
+  });
+
+  test("no todos is zero of zero", async () => {
+    expect(await service.countTodos(alice)).toEqual({
+      total: 0,
+      done: 0,
+      open: 0,
+    });
+  });
+});
+
 describe("updateTodo", () => {
   const created = new Date("2026-10-01T09:00:00.000Z");
   const finishedAt = new Date("2026-10-03T17:30:00.000Z");

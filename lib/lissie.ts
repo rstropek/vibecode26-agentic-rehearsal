@@ -1,10 +1,5 @@
 import "server-only";
-import type {
-  ActivityMessage,
-  AssistantMessage,
-  Message,
-  ToolMessage,
-} from "@ag-ui/client";
+import type { AssistantMessage, Message, ToolMessage } from "@ag-ui/client";
 import { Agent } from "@mastra/core/agent";
 import type { MastraDBMessage } from "@mastra/core/memory";
 import {
@@ -16,8 +11,8 @@ import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 import { db } from "@/lib/db";
 import { localToday } from "@/lib/due-date";
+import { lissieCard } from "@/lib/lissie-cards";
 import { lissieModel } from "@/lib/lissie-model";
-import { showProgressOutputSchema } from "@/lib/lissie-tool-schemas";
 import { lissieTools } from "@/lib/lissie-tools";
 
 // Lissie, the Mastra agent behind the chat on /; see tech-docs/agent.md.
@@ -119,25 +114,9 @@ function continuationId(messageId: string, index: number): string {
     : `${messageId}-agui-text-${index}`;
 }
 
-// The surface a tool result with A2UI operations (showProgress) painted live: the runtime's A2UI middleware adds it
-// right after the result as an activity message named after the call, which the chat renders with its catalog.
-function a2uiSurfaceMessage(
-  toolCallId: string,
-  result: unknown,
-): ActivityMessage | undefined {
-  const parsed = showProgressOutputSchema.safeParse(result);
-  if (!parsed.success) return undefined;
-  return {
-    id: `a2ui-surface-${toolCallId}`,
-    role: "activity",
-    activityType: "a2ui-surface",
-    content: parsed.data,
-  };
-}
-
 // One stored message as the live stream showed it: an assistant message with the text before the first tool call
-// and every finished tool call, a tool message per result, the surface a result painted, and each later run of text
-// in its continuation message.
+// and every finished tool call, a tool message per result, the card a result shows (lib/lissie-cards.ts), and each
+// later run of text in its continuation message.
 function toAgUiMessages(message: MastraDBMessage): Message[] {
   if (message.role === "user") {
     const content = message.content.parts
@@ -183,8 +162,8 @@ function toAgUiMessages(message: MastraDBMessage): Message[] {
         content: JSON.stringify(result),
       };
       out.push(toolMessage);
-      const surface = a2uiSurfaceMessage(toolCallId, result);
-      if (surface) out.push(surface);
+      const card = lissieCard(toolName, toolCallId, result);
+      if (card) out.push(card);
       if (boundaries === 0 || textSinceToolCall) boundaries += 1;
       textSinceToolCall = false;
     }

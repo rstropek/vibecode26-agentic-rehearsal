@@ -5,7 +5,7 @@ import type {
   TodoFilter,
   UpdateTodoInput,
 } from "@todo-cat/contract";
-import { and, asc, eq, type SQL, sql } from "drizzle-orm";
+import { and, asc, count, eq, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { todos } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -86,6 +86,22 @@ export async function listTodos(
       asc(todos.id),
     );
   return rows.map(toTodo);
+}
+
+// How many todos the user has, how many of them are done, and how many are still open, counted in the database.
+export async function countTodos(
+  userId: string,
+): Promise<{ total: number; done: number; open: number }> {
+  const row = await db
+    .select({
+      total: count(),
+      done: sql<number>`coalesce(sum(${todos.done}), 0)`.mapWith(Number),
+    })
+    .from(todos)
+    .where(eq(todos.userId, userId))
+    .get();
+  const { total = 0, done = 0 } = row ?? {};
+  return { total, done, open: total - done };
 }
 
 export async function getTodo(userId: string, id: string): Promise<Todo> {

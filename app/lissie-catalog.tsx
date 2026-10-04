@@ -9,19 +9,21 @@ import {
 import { LISSIE_CATALOG_ID } from "@/lib/lissie-tool-schemas";
 
 // The A2UI catalog the chat renders Lissie's surfaces with: the basic components plus a ProgressBar, for the
-// progress card that her showProgress tool builds (lib/lissie-tools.ts). See tech-docs/agent.md.
+// progress card built from her showProgress results (lib/lissie-cards.ts). See tech-docs/agent.md.
 
-// A bar for `value` out of `max`, with the label and the count above it. Inside the chat, muted text reads
-// --color-muted, because CopilotKit redefines --muted as a surface (tech-docs/ui.md).
+// A bar for `value` out of `max`, with the label and the count above it. A surface's props are whatever its
+// bindings resolve to, so a missing label falls back to "Progress" and keeps the bar named. Inside the chat, muted
+// text reads --color-muted, because CopilotKit redefines --muted as a surface (tech-docs/ui.md).
 export function ProgressBar({
-  label,
+  label: givenLabel,
   value,
   max,
 }: {
-  label: string;
+  label?: string;
   value: number;
   max: number;
 }) {
+  const label = givenLabel || "Progress";
   const total = Number.isFinite(max) && max > 0 ? max : 0;
   const current = Number.isFinite(value)
     ? Math.min(Math.max(value, 0), total)

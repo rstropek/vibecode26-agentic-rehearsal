@@ -13,7 +13,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 A to-do list web app whose lists are kept by Lissie, a cat with attitude: a Mastra agent you chat with on `/`.
 Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans).
 All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that.
-Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos and show their progress as an A2UI card in the chat (catalog in `app/lissie-catalog.tsx`).
+Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos and show their progress as an A2UI card in the chat (built in `lib/lissie-cards.ts`, catalog in `app/lissie-catalog.tsx`).
 Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
 Not built yet: editing a todo's title or due date, and MCP.
 `README.md` is still the create-next-app boilerplate; this file, `tech-docs/`, and `PRODUCT.md` (users, purpose, and Lissie's voice, for design work) are the project docs.

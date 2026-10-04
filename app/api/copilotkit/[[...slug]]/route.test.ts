@@ -7,8 +7,8 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 // Lissie answers from a script instead of calling OpenRouter; the headers and tool names of each model call are kept.
-// "Add <title>" makes her call addTodo, "How am I doing?" showProgress, a tool result makes her comment on it, and
-// anything else gets "Meow.".
+// "Add <title>" makes her call addTodo, "How am I doing?" showProgress and listTodos in one step, a tool result makes
+// her comment on it, and anything else gets "Meow.".
 const modelCallHeaders = vi.hoisted(() => [] as unknown[]);
 const modelCallTools = vi.hoisted(() => [] as string[][]);
 vi.mock("@/lib/lissie-model", async () => {
@@ -27,24 +27,25 @@ vi.mock("@/lib/lissie-model", async () => {
             : []
         ).join("");
         const title = /^Add (.+)$/.exec(said)?.[1];
-        const toolCall = title
-          ? { toolName: "addTodo", input: { title } }
+        const toolCalls = title
+          ? [{ toolName: "addTodo", input: { title } }]
           : said === "How am I doing?"
-            ? { toolName: "showProgress", input: {} }
-            : undefined;
+            ? [
+                { toolName: "showProgress", input: {} },
+                { toolName: "listTodos", input: {} },
+              ]
+            : [];
         const reply =
           last?.role === "tool" ? "Milk. For a human. Fine." : "Meow.";
         const parts = [
           { type: "stream-start" as const, warnings: [] },
-          toolCall
-            ? [
-                {
-                  type: "tool-call" as const,
-                  toolCallId: `call-${crypto.randomUUID()}`,
-                  toolName: toolCall.toolName,
-                  input: JSON.stringify(toolCall.input),
-                },
-              ]
+          toolCalls.length > 0
+            ? toolCalls.map((toolCall) => ({
+                type: "tool-call" as const,
+                toolCallId: `call-${crypto.randomUUID()}`,
+                toolName: toolCall.toolName,
+                input: JSON.stringify(toolCall.input),
+              }))
             : [
                 { type: "text-start" as const, id: "text-1" },
                 { type: "text-delta" as const, id: "text-1", delta: reply },
@@ -52,9 +53,10 @@ vi.mock("@/lib/lissie-model", async () => {
               ],
           {
             type: "finish" as const,
-            finishReason: toolCall
-              ? ("tool-calls" as const)
-              : ("stop" as const),
+            finishReason:
+              toolCalls.length > 0
+                ? ("tool-calls" as const)
+                : ("stop" as const),
             usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
           },
         ].flat();
@@ -504,13 +506,18 @@ describe("the progress card", () => {
     ]);
   });
 
-  test("showProgress's result paints an A2UI surface with the user's numbers", () => {
-    const start = live.find((event) => event.type === "TOOL_CALL_START");
-    expect(start).toMatchObject({ toolCallName: "showProgress" });
+  // listTodos runs in the same step and starts after showProgress, which made the runtime's A2UI middleware name the
+  // surface after listTodos's call.
+  test("showProgress's result paints an A2UI surface with the user's numbers, named after its own call", () => {
+    const starts = live.filter((event) => event.type === "TOOL_CALL_START");
+    expect(starts.map((event) => event.toolCallName)).toEqual([
+      "showProgress",
+      "listTodos",
+    ]);
     const surfaces = live.filter((event) => event.type === "ACTIVITY_SNAPSHOT");
     expect(surfaces).toEqual([
       expect.objectContaining({
-        messageId: `a2ui-surface-${start?.toolCallId}`,
+        messageId: `a2ui-surface-${starts[0]?.toolCallId}`,
         activityType: "a2ui-surface",
         content: {
           a2ui_operations: expect.arrayContaining([
@@ -545,6 +552,7 @@ describe("the progress card", () => {
         activityType: "a2ui-surface",
         content: surface?.content,
       },
+      expect.objectContaining({ role: "tool" }),
       expect.objectContaining({ role: "assistant" }),
     ]);
 
