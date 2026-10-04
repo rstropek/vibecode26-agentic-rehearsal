@@ -20,8 +20,15 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 - `npm run build` creates a production build.
 - `npm test` runs the Vitest unit and integration tests once.
 - `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
-- `npm run lint` runs `biome check` (lint, format, import order) and must pass before committing.
+- `npm run lint` runs `biome check` (lint, format, import order).
+- `npm run typecheck` generates Next.js route types and type-checks all workspaces.
+- `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) and prints only what failed.
 - `npx biome check --write` applies Biome's safe fixes and formatting.
+
+## Definition of done
+
+- Run `npm run qa` before you call a task done, and keep going until it passes.
+- Fix the code instead of suppressing findings: no `biome-ignore`, `@ts-expect-error`, `any`, skipped tests, or loosened config to get green.
 
 ## Newer than your training data
 
@@ -40,7 +47,7 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 Index:
 
 - [tech-docs/workspaces.md](tech-docs/workspaces.md): workspace layout and why it exists before its content does.
-- [tech-docs/testing.md](tech-docs/testing.md): test strategy, commands, and gotchas for Vitest and Playwright.
+- [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 
 ## Keeping this map current
 

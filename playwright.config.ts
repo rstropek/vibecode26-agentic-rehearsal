@@ -1,13 +1,18 @@
 import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
-// Ask the OS for a free port once; workers re-evaluate this file and inherit the env var.
+// Everything the e2e server shares with other processes is overridable, so it never collides with
+// `npm run dev` or another checkout. Workers re-evaluate this file and inherit the env vars set here.
 process.env.E2E_PORT ||= execFileSync(process.execPath, [
   "-e",
   "const s = require('node:net').createServer().listen(0, () => { console.log(s.address().port); s.close(); });",
 ])
   .toString()
   .trim();
+process.env.E2E_DIST_DIR ||= ".next-e2e";
+process.env.E2E_DATABASE_URL ||= `file:${join(tmpdir(), `todo-cat-e2e-${process.env.E2E_PORT}-${Date.now()}.db`)}`;
 const baseURL = `http://localhost:${process.env.E2E_PORT}`;
 
 export default defineConfig({
@@ -24,7 +29,10 @@ export default defineConfig({
   webServer: {
     command: `next dev --port ${process.env.E2E_PORT}`,
     url: baseURL,
-    env: { NEXT_DIST_DIR: ".next-e2e" },
+    env: {
+      NEXT_DIST_DIR: process.env.E2E_DIST_DIR,
+      DATABASE_URL: process.env.E2E_DATABASE_URL,
+    },
     reuseExistingServer: false,
     timeout: 120_000,
   },

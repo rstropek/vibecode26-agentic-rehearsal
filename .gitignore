@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/.qa/
 /test-results/
 /playwright-report/
 /blob-report/

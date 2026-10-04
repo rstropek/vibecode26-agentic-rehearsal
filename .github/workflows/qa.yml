@@ -1,0 +1,66 @@
+# Runs the same QA script agents and humans run locally. No deployment.
+name: QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Read Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Never real secrets: every *_SECRET, *_KEY and *_TOKEN from .env.example gets a random dummy.
+      - name: Write .env with dummy secrets
+        run: |
+          while IFS= read -r line; do
+            case "$line" in
+              *_SECRET=* | *_KEY=* | *_TOKEN=*) echo "${line%%=*}=dummy-$(openssl rand -hex 32)" ;;
+              *) echo "$line" ;;
+            esac
+          done < .env.example > .env
+
+      - run: npm run qa
+
+      - name: Upload QA log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-log
+          path: .qa/qa.log
+          include-hidden-files: true
