@@ -18,6 +18,8 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 - `npm install` installs the root app and both workspaces.
 - `npm run dev` starts the dev server on http://localhost:3000.
 - `npm run build` creates a production build.
+- `npm test` runs the Vitest unit and integration tests once.
+- `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
 - `npm run lint` runs `biome check` (lint, format, import order) and must pass before committing.
 - `npx biome check --write` applies Biome's safe fixes and formatting.
 
@@ -38,6 +40,7 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 Index:
 
 - [tech-docs/workspaces.md](tech-docs/workspaces.md): workspace layout and why it exists before its content does.
+- [tech-docs/testing.md](tech-docs/testing.md): test strategy, commands, and gotchas for Vitest and Playwright.
 
 ## Keeping this map current
 
