@@ -13,6 +13,8 @@ import {
   listTodosOutputSchema,
   setTodoDoneInputSchema,
   setTodoDoneOutputSchema,
+  showProgressInputSchema,
+  showProgressOutputSchema,
 } from "@/lib/lissie-tool-schemas";
 
 // What Lissie did with her tools, as one readable line per call in the chat, and the refresh that keeps the
@@ -170,6 +172,24 @@ export function SetTodoDoneLine({
   );
 }
 
+// Once the numbers are in, the progress card that follows the result shows them (lib/lissie-cards.ts), so the line
+// only shows the call running or failing.
+export function ShowProgressLine({
+  status,
+  result,
+}: {
+  status: Status;
+  result?: string;
+}) {
+  if (status !== "complete") {
+    return <ToolLine outcome="running">Counting your todos</ToolLine>;
+  }
+  if (!parseToolResult(showProgressOutputSchema, result)) {
+    return <ToolLine outcome="failed">Couldn’t count your todos</ToolLine>;
+  }
+  return null;
+}
+
 export function useLissieToolRenderers(): void {
   useRenderTool(
     {
@@ -192,6 +212,14 @@ export function useLissieToolRenderers(): void {
       name: LISSIE_TOOL_NAMES.setTodoDone,
       parameters: setTodoDoneInputSchema,
       render: SetTodoDoneLine,
+    },
+    [],
+  );
+  useRenderTool(
+    {
+      name: LISSIE_TOOL_NAMES.showProgress,
+      parameters: showProgressInputSchema,
+      render: ShowProgressLine,
     },
     [],
   );

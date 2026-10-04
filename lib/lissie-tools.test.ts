@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RequestContext } from "@mastra/core/request-context";
 import { noopObserve } from "@mastra/core/tools";
+import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import {
   afterAll,
@@ -14,7 +15,7 @@ import {
   test,
   vi,
 } from "vitest";
-import { user } from "@/db/schema";
+import { todos, user } from "@/db/schema";
 
 // Lissie's tool executors against a temp database, with the request context the runtime builds from the session.
 // Every case has two users: Alice's context must never reach Bob's todos.
@@ -174,6 +175,36 @@ describe("setTodoDone", () => {
   });
 });
 
+describe("showProgress", () => {
+  test("counts only the signed-in user's todos", async () => {
+    const milk = await service.addTodo(alice, { title: "Buy milk" });
+    await service.addTodo(alice, { title: "Feed the cat" });
+    await service.addTodo(alice, { title: "Call the vet" });
+    await service.updateTodo(alice, milk.id, { done: true });
+    await service.addTodo(bob, { title: "Bob's todo" });
+
+    const result = await tools.showProgress.execute?.({}, as(alice));
+
+    // Alice's rows, counted here independently of the tool.
+    const rows = await db.select().from(todos).where(eq(todos.userId, alice));
+    const done = rows.filter((row) => row.done).length;
+    expect(result).toEqual({
+      total: rows.length,
+      done,
+      open: rows.length - done,
+    });
+    expect(result).toEqual({ total: 3, done: 1, open: 2 });
+  });
+
+  test("an empty list is zero of zero", async () => {
+    expect(await tools.showProgress.execute?.({}, as(alice))).toEqual({
+      total: 0,
+      done: 0,
+      open: 0,
+    });
+  });
+});
+
 describe("without a signed-in user", () => {
   test("every tool refuses to run", async () => {
     await service.addTodo(alice, { title: "Feed the cat" });
@@ -192,6 +223,9 @@ describe("without a signed-in user", () => {
     await expect(
       tools.setTodoDone.execute?.({ id: todo.id, done: true }, nobody),
     ).rejects.toThrow("signed-in user");
+    await expect(tools.showProgress.execute?.({}, nobody)).rejects.toThrow(
+      "signed-in user",
+    );
     expect(await service.listTodos(alice)).toHaveLength(1);
   });
 });

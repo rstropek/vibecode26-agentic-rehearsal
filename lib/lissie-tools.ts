@@ -12,9 +12,12 @@ import {
   listTodosOutputSchema,
   setTodoDoneInputSchema,
   setTodoDoneOutputSchema,
+  showProgressInputSchema,
+  showProgressOutputSchema,
 } from "@/lib/lissie-tool-schemas";
 import {
   addTodo as addTodoForUser,
+  countTodos,
   listTodos as listTodosForUser,
   TodoError,
   updateTodo,
@@ -77,9 +80,22 @@ export const setTodoDone = createTool({
   },
 });
 
+// The numbers come from the todo service, never from the model. The result is only those numbers; the chat shows
+// them as a card that lib/lissie-cards.ts builds from the result, so no second model call builds the UI.
+export const showProgress = createTool({
+  id: "showProgress",
+  description:
+    "Show the user a card in the chat with how many of their todos are done and how many are still open. The result holds the numbers the card shows.",
+  inputSchema: showProgressInputSchema,
+  outputSchema: showProgressOutputSchema,
+  execute: async (_input, { requestContext }) =>
+    countTodos(userIdFrom(requestContext)),
+});
+
 // The keys are the tool names the model calls and the chat renders by (LISSIE_TOOL_NAMES).
 export const lissieTools = {
   listTodos,
   addTodo,
   setTodoDone,
+  showProgress,
 } satisfies Record<keyof typeof LISSIE_TOOL_NAMES, unknown>;

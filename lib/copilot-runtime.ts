@@ -3,6 +3,7 @@ import { type BaseEvent, EventType } from "@ag-ui/client";
 import { MastraAgent } from "@ag-ui/mastra";
 import {
   type AgentRunnerConnectRequest,
+  type AgentRunnerRunRequest,
   CopilotRuntime,
   createCopilotRuntimeHandler,
   InMemoryAgentRunner,
@@ -17,6 +18,7 @@ import {
   lissieThreadId,
   loadLissieHistory,
 } from "@/lib/lissie";
+import { LissieCards } from "@/lib/lissie-cards";
 
 // The CopilotKit runtime that serves Lissie over AG-UI at /api/copilotkit; see tech-docs/agent.md.
 // The route resolves the signed-in user first and builds this handler per request around their id,
@@ -30,6 +32,12 @@ export const COPILOTKIT_BASE_PATH = "/api/copilotkit";
 class LissieRunner extends InMemoryAgentRunner {
   constructor(private readonly userId: string) {
     super();
+  }
+
+  // The runtime clones the agent per request, and MastraAgent's clone drops middleware, so it goes on the clone here.
+  override run(request: AgentRunnerRunRequest): Observable<BaseEvent> {
+    request.agent.use(new LissieCards());
+    return super.run(request);
   }
 
   override connect(request: AgentRunnerConnectRequest): Observable<BaseEvent> {
@@ -111,8 +119,13 @@ export function createLissieHandler(
         // The only way the user id reaches Lissie's tools (lib/lissie-tools.ts); the bridge adds the client's AG-UI
         // context under its own "ag-ui" key and never touches these.
         requestContext: lissieRequestContext(userId),
+        // Never inject `generate_a2ui`, even when a request's forwardedProps ask for it.
+        a2ui: { injectA2UITool: false },
       }),
     },
+    // Off, even though the chat has a catalog, which would otherwise switch it on with a UI-generating render tool:
+    // LissieCards paints Lissie's cards instead (LissieRunner.run).
+    a2ui: { enabled: false },
     runner: new LissieRunner(userId),
     // By default the runtime forwards `authorization` and `x-*` request headers to the agent, and the Mastra
     // bridge sends them on to OpenRouter: a bearer client's session token would leak and clobber the API key.

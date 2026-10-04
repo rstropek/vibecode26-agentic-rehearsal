@@ -18,6 +18,12 @@ Lissie's ledger: a to-do list kept by a cat who doesn't tick things off, she cla
 - `components/ui/`: `Button` (primary, quiet, danger; md and sm), `Field` and `inputClassName`, `FormError`, `TextLink`, `PageShell` (the auth and device pages), and `Wordmark`; pages compose these instead of repeating class strings.
 - `app/page.tsx`: the home layout; `app/todo-list.tsx`: the list sheet with the add form, the items, the delete confirmation, and the claw marks.
 - `app/todo-actions.ts`: the list's Server Actions (see [architecture.md](architecture.md)).
+- `app/lissie-catalog.tsx`: `ProgressBar`, the one custom component in the chat's A2UI catalog: an amber fill on a `line` track, its label in ink, and the count in muted tabular figures.
+
+## The progress card
+
+- Lissie's progress card (see [agent.md](agent.md)) sits on the chat's paper like her messages, with no border or raised surface, since the list is the one raised object.
+- Its title and "still open" line are A2UI's basic `Text`, which inherits the chat's font and ink; avoid its `caption` variant, which hard-codes `#666`, and its `Card`, which hard-codes a `#ccc` border.
 
 ## The list
 

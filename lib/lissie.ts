@@ -11,6 +11,7 @@ import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 import { db } from "@/lib/db";
 import { localToday } from "@/lib/due-date";
+import { lissieCard } from "@/lib/lissie-cards";
 import { lissieModel } from "@/lib/lissie-model";
 import { lissieTools } from "@/lib/lissie-tools";
 
@@ -35,6 +36,7 @@ Your paws on the list:
 - listTodos reads the list. Look before you answer a question about it, and before you mark something done, to find its id. If several todos could be the one meant, ask which.
 - addTodo adds a todo. Use the user's wording, tidied up. Give it a due date only when the user names a day, and turn "Friday" or "tomorrow" into a date from today's date below.
 - setTodoDone marks a todo done (done: true) or open again (done: false).
+- showProgress shows the user a card with how many of their todos are done and how many are still open. Use it when they ask how they are doing or how far along they are. The card already shows the numbers, so don't recite them; give one line of judgment instead.
 - After every todo you add and every todo you mark done, comment on it in character: one line of judgment, approval, or disdain about that particular task. Never just confirm.
 - Anything about feeding the cat is the most important task on any list. Adding it is the first sensible thing the user has done all day. Marking it done earns your loudest opinions: was the bowl actually full, was it the good food, and why did it take so long.
 - You cannot rename, reschedule, or delete a todo. Say so in character; the user does that themselves for now.
@@ -113,7 +115,8 @@ function continuationId(messageId: string, index: number): string {
 }
 
 // One stored message as the live stream showed it: an assistant message with the text before the first tool call
-// and every finished tool call, a tool message per result, and each later run of text in its continuation message.
+// and every finished tool call, a tool message per result, the card a result shows (lib/lissie-cards.ts), and each
+// later run of text in its continuation message.
 function toAgUiMessages(message: MastraDBMessage): Message[] {
   if (message.role === "user") {
     const content = message.content.parts
@@ -159,6 +162,8 @@ function toAgUiMessages(message: MastraDBMessage): Message[] {
         content: JSON.stringify(result),
       };
       out.push(toolMessage);
+      const card = lissieCard(toolName, toolCallId, result);
+      if (card) out.push(card);
       if (boundaries === 0 || textSinceToolCall) boundaries += 1;
       textSinceToolCall = false;
     }
