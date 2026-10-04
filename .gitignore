@@ -50,3 +50,6 @@ next-env.d.ts
 
 # impeccable engine binary (platform-specific, downloaded on first use)
 .claude/skills/impeccable/scripts/bin/
+
+# Claude Code worktrees
+.claude/worktrees/
