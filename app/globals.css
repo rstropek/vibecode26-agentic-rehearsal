@@ -41,8 +41,9 @@ body {
 }
 
 /* CopilotKit's chat (app/lissie-chat.tsx) reads shadcn tokens on [data-copilotkit]; point them at ours.
-   Our --muted means text, theirs a surface, so map through the --color-* names. */
-.lissie-chat [data-copilotkit] {
+   :root outranks CopilotKit's own unlayered [data-copilotkit] defaults and also reaches its tooltips and menus,
+   which portal to <body>, outside .lissie-chat. Our --muted means text, theirs a surface, so map through --color-*. */
+:root [data-copilotkit] {
   --background: var(--color-paper-raised);
   --foreground: var(--color-ink);
   --card: var(--color-paper-raised);
@@ -63,4 +64,80 @@ body {
   --ring: var(--color-amber);
   --cpk-font-sans: var(--font-bricolage), system-ui, sans-serif;
   --cpk-default-font-family: var(--font-bricolage), system-ui, sans-serif;
+}
+
+/* The rest of the chat hard-codes greys and switches them only under a .dark class, which this app never sets
+   because it follows prefers-color-scheme. CopilotKit's utilities sit in @layer utilities, so these unlayered
+   rules win and must restate hover and disabled states. Selectors use CopilotKit's data-testids. */
+
+/* Message text: Tailwind Typography's grey palette, inverted only under .dark. */
+:root [data-copilotkit] .cpk\:prose {
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-ink);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-quote-borders: var(--color-line);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-kbd: var(--color-ink);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-pre-code: var(--color-ink);
+  --tw-prose-pre-bg: var(--color-paper);
+  --tw-prose-th-borders: var(--color-line);
+  --tw-prose-td-borders: var(--color-line);
+}
+
+/* The input: white or #303030 with a black hairline shadow, and no focus indicator. */
+[data-testid="copilot-chat-input"] {
+  background: var(--color-paper);
+  box-shadow: 0 0 0 1px var(--color-line);
+}
+[data-testid="copilot-chat-input"]:focus-within {
+  box-shadow: 0 0 0 2px var(--color-amber);
+}
+[data-testid="copilot-chat-textarea"]::placeholder {
+  color: var(--color-muted);
+}
+
+/* Send: black or white. */
+[data-testid="copilot-send-button"] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+[data-testid="copilot-send-button"]:disabled {
+  background: var(--color-line);
+  color: var(--color-muted);
+}
+
+/* Icon buttons in the input (add, dictation) and under messages (copy, edit, feedback, regenerate, read aloud). */
+[data-testid="copilot-chat-input"]
+  button:not([data-testid="copilot-send-button"]),
+[data-testid="copilot-assistant-toolbar"] button,
+[data-testid="copilot-user-toolbar"] button {
+  color: var(--color-muted);
+}
+[data-testid="copilot-chat-input"]
+  button:not([data-testid="copilot-send-button"]):enabled:hover {
+  background: var(--color-line);
+  color: var(--color-ink);
+}
+[data-testid="copilot-assistant-toolbar"] button:enabled:hover,
+[data-testid="copilot-user-toolbar"] button:enabled:hover {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Floating surfaces: white or gray-900. */
+[data-testid="copilot-scroll-to-bottom"],
+[data-testid="copilot-slash-menu"] {
+  border-color: var(--color-line);
+  background: var(--color-paper-raised);
+  color: var(--color-ink);
+}
+[data-testid="copilot-scroll-to-bottom"]:hover {
+  background: var(--color-paper);
 }

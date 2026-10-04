@@ -54,7 +54,8 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 
 - `CopilotKit` from `@copilotkit/react-core/v2` with `useSingleEndpoint={false}` to match the multi-route handler, and `enableInspector={false}` because the inspector's thread routes are denied.
 - `CopilotChat` gets an explicit `threadId`, which makes it connect (replay) on mount instead of minting a fresh thread; it does not run the model until the user sends a message.
-- The chat's shadcn tokens are mapped to the app's theme in `app/globals.css` under `.lissie-chat`; CopilotKit's `--muted` is a surface while ours is text, hence the `--color-*` indirection.
+- The chat's shadcn tokens are mapped to the app's theme in `app/globals.css` on every `[data-copilotkit]`, because tooltips and menus portal to `<body>`; CopilotKit's `--muted` is a surface while ours is text, hence the `--color-*` indirection.
+- CopilotKit hard-codes greys (message prose, input, send and toolbar buttons) and darkens them only under a `.dark` class, while the app follows `prefers-color-scheme`, so `globals.css` overrides them by `data-testid`; check new chat features in both color schemes.
 
 ## Tests
 
