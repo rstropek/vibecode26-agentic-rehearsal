@@ -46,3 +46,13 @@ export class CliError extends Error {
     return exitCodes[this.code];
   }
 }
+
+// Anything thrown that is not a CliError is a bug or an unexpected failure: `internal`.
+export function toCliError(error: unknown): CliError {
+  return error instanceof CliError
+    ? error
+    : new CliError(
+        "internal",
+        error instanceof Error ? error.message : String(error),
+      );
+}

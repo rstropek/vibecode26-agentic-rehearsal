@@ -33,6 +33,7 @@
 ## Conventions
 
 - Vitest picks up `*.test.ts(x)` anywhere in the repo, workspaces included, so colocate tests with the code they cover.
+- Vitest skips `.claude/worktrees/`, where Claude Code keeps other checkouts of this repo, because it does not read `.gitignore` and their tests cannot run from this root.
 - Playwright specs live in `e2e/` as `*.spec.ts`, and Vitest excludes that folder.
 - Query by role or label (`getByRole`, `getByLabel`) in both tools, so the tests double as an accessibility check.
 

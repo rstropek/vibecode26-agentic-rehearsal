@@ -35,7 +35,7 @@ export async function send(url: string, init: RequestInit): Promise<Response> {
 }
 
 // A client-side schema failure is a `validation-failed`, exactly like the server's.
-function parseInput<S extends z.ZodType>(
+export function parseInput<S extends z.ZodType>(
   schema: S,
   input: unknown,
 ): z.output<S> {
@@ -76,7 +76,14 @@ async function request(
   if (response.ok) return body;
   const error = errorBodySchema.safeParse(body);
   if (error.success) {
-    throw new CliError(error.data.error.code, error.data.error.message);
+    const { code, message } = error.data.error;
+    // The server's hint is for raw HTTP clients; here the fix is a new login.
+    throw new CliError(
+      code,
+      code === "unauthorized"
+        ? `The session for ${session.server} is no longer valid; run \`todo-cat login\``
+        : message,
+    );
   }
   throw new CliError(
     "unexpected-response",

@@ -1,4 +1,5 @@
 import type { Todo } from "@todo-cat/contract";
+import type { User } from "./auth";
 import type { CliError } from "./errors";
 
 // Everything the CLI prints goes through here: results on stdout, errors on stderr, as text or as JSON.
@@ -46,4 +47,8 @@ export function todoDetails(todo: Todo): string {
     `  due        ${todo.dueDate ?? "none"}`,
     `  created    ${todo.createdAt}`,
   ].join("\n");
+}
+
+export function userText(user: User): string {
+  return `${user.name} <${user.email}>`;
 }

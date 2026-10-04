@@ -11,11 +11,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # todo-cat
 
 A to-do list web app whose lists are kept by Lissie, a cat with attitude: a Mastra agent you chat with on `/`.
-Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans).
+Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans, which also serves its commands as MCP tools with `todo-cat mcp --stdio`).
 All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that.
 Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos and show their progress as an A2UI card in the chat (built in `lib/lissie-cards.ts`, catalog in `app/lissie-catalog.tsx`).
 Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
-Not built yet: editing a todo's title or due date, and MCP.
+Not built yet: editing a todo's title or due date in the web app, and MCP over HTTP.
 `README.md` is still the create-next-app boilerplate; this file, `tech-docs/`, and `PRODUCT.md` (users, purpose, and Lissie's voice, for design work) are the project docs.
 
 ## First-time setup
@@ -59,6 +59,7 @@ Not built yet: editing a todo's title or due date, and MCP.
 - Next.js: read the docs for the installed version in `node_modules/next/dist/docs/`, not the website, which may describe another version.
 - Vendors with an `llms.txt` index: start there and follow its links, e.g. https://orm.drizzle.team/llms.txt for Drizzle (use the `docs/sqlite/` pages, which target the v1 RC installed here) and https://better-auth.com/llms.txt for Better Auth.
 - Libraries with an installed skill (`.claude/skills/`): use the skill, e.g. `mastra`, `copilotkit`, and `impeccable` or `frontend-design` for UI work.
+- MCP: start at https://modelcontextprotocol.io/llms.txt and read the current revision (2026-07-28), and the SDK's own index at https://ts.sdk.modelcontextprotocol.io/v2/llms.txt for `@modelcontextprotocol/server` and `/client` v2.
 - Any other library: use the ctx7 CLI described in the `find-docs` skill (`npx ctx7@latest library <name> "<question>"`, then `docs <id> "<question>"`).
 - When docs and installed code disagree, the type definitions in `node_modules/` win.
 
@@ -81,7 +82,7 @@ Index:
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
 - [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, her tools and how they get the user id, the A2UI progress card, the CopilotKit runtime and its route authorization, history replay, and the chat UI with the list next to it.
 - [tech-docs/ui.md](tech-docs/ui.md): the "Scratched off" design direction, where tokens and shared components live, the list's interaction details, the progress card, and the CopilotKit styling gotchas.
-- [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
+- [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its commands shared with the stdio MCP server and how to register that in Claude Code, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
 
 ## Keeping this map current
 

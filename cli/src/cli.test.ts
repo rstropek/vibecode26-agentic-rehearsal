@@ -13,6 +13,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
+import { type CallToolResult, Client } from "@modelcontextprotocol/client";
+import {
+  getDefaultEnvironment,
+  StdioClientTransport,
+} from "@modelcontextprotocol/client/stdio";
 import { todoListSchema, todoSchema } from "@todo-cat/contract";
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
@@ -25,7 +30,7 @@ import * as schema from "@/db/schema";
 import { authConfig } from "@/lib/auth-config";
 
 // Drives the built CLI end to end against a real `next dev` server on a spare port, with a temp database
-// and a temp config directory. The device code is approved over HTTP with a session from Better Auth's
+// and a temp config directory, both as commands and as an MCP server that an MCP client spawns over stdio. The device code is approved over HTTP with a session from Better Auth's
 // test utils, through the same Better Auth endpoints the /device page calls, so no browser is involved.
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
@@ -176,6 +181,33 @@ function errorCode(run: Run): string {
   return cliErrorSchema.parse(JSON.parse(run.stderr)).error.code;
 }
 
+// An MCP client on the current protocol revision that spawns `todo-cat mcp --stdio` with the given config directory.
+async function connectMcp(config: string): Promise<Client> {
+  const client = new Client(
+    { name: "todo-cat-test", version: "1.0.0" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+  );
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [join(root, "cli/bin/todo-cat.js"), "mcp", "--stdio"],
+      env: {
+        ...getDefaultEnvironment(),
+        TODO_CAT_URL: base,
+        XDG_CONFIG_HOME: config,
+      },
+    }),
+  );
+  return client;
+}
+
+// A tool result is the command's --json output, or the CLI's error body when isError is set.
+function toolJson(result: CallToolResult): unknown {
+  const [block] = result.content;
+  if (block?.type !== "text") throw new Error("Expected one text block");
+  return JSON.parse(block.text);
+}
+
 describe("the todo-cat CLI", { timeout: 60_000 }, () => {
   let token: string;
   let catFoodId: string;
@@ -303,6 +335,121 @@ describe("the todo-cat CLI", { timeout: 60_000 }, () => {
     const missing = await cli("show", catFoodId, "--json");
     expect(missing.code).toBe(4);
     expect(errorCode(missing)).toBe("todo-not-found");
+  });
+
+  describe("as an MCP server over stdio", () => {
+    let client: Client;
+    let feedId: string;
+
+    beforeAll(async () => {
+      client = await connectMcp(configDir);
+    });
+
+    afterAll(async () => {
+      await client.close();
+    });
+
+    test("lists one tool per command, annotated instead of --yes", async () => {
+      const write = (destructiveHint: boolean, idempotentHint: boolean) => ({
+        readOnlyHint: false,
+        destructiveHint,
+        idempotentHint,
+      });
+      const { tools } = await client.listTools();
+      expect(
+        tools.map(({ name, annotations }) => ({ name, annotations })),
+      ).toEqual([
+        { name: "whoami", annotations: { readOnlyHint: true } },
+        { name: "list", annotations: { readOnlyHint: true } },
+        { name: "show", annotations: { readOnlyHint: true } },
+        { name: "add", annotations: write(false, false) },
+        { name: "edit", annotations: write(false, true) },
+        { name: "done", annotations: write(false, true) },
+        { name: "reopen", annotations: write(false, true) },
+        { name: "delete", annotations: write(true, true) },
+      ]);
+      // The input schemas come from the contract.
+      const add = tools.find((tool) => tool.name === "add");
+      expect(add?.inputSchema).toMatchObject({
+        properties: { title: { type: "string", maxLength: 200 } },
+        required: ["title"],
+      });
+      const remove = tools.find((tool) => tool.name === "delete");
+      expect(Object.keys(remove?.inputSchema.properties ?? {})).toEqual(["id"]);
+    });
+
+    test("adds a todo", async () => {
+      const result = await client.callTool({
+        name: "add",
+        arguments: { title: "Feed Lissie", dueDate: "2026-10-07" },
+      });
+      expect(result.isError).toBe(false);
+      const todo = todoSchema.parse(toolJson(result));
+      expect(todo).toMatchObject({
+        title: "Feed Lissie",
+        dueDate: "2026-10-07",
+        done: false,
+      });
+      feedId = todo.id;
+    });
+
+    test("lists todos", async () => {
+      const all = todoListSchema.parse(
+        toolJson(await client.callTool({ name: "list", arguments: {} })),
+      );
+      expect(all.map((todo) => todo.title)).toEqual([
+        "Feed Lissie",
+        "Brush Lissie",
+      ]);
+      const found = todoListSchema.parse(
+        toolJson(
+          await client.callTool({
+            name: "list",
+            arguments: { status: "open", search: "feed" },
+          }),
+        ),
+      );
+      expect(found.map((todo) => todo.id)).toEqual([feedId]);
+    });
+
+    test("marks a todo as done", async () => {
+      const result = await client.callTool({
+        name: "done",
+        arguments: { id: feedId },
+      });
+      expect(result.isError).toBe(false);
+      expect(todoSchema.parse(toolJson(result))).toMatchObject({
+        id: feedId,
+        done: true,
+      });
+    });
+
+    test("turns an API error into a tool error with the API's code", async () => {
+      const result = await client.callTool({
+        name: "done",
+        arguments: { id: crypto.randomUUID() },
+      });
+      expect(result.isError).toBe(true);
+      expect(cliErrorSchema.parse(toolJson(result)).error.code).toBe(
+        "todo-not-found",
+      );
+    });
+
+    test("starts without a login and tells the user to log in", async () => {
+      const signedOut = await connectMcp(join(dir, "empty-config"));
+      try {
+        const result = await signedOut.callTool({
+          name: "list",
+          arguments: {},
+        });
+        expect(result.isError).toBe(true);
+        const { error } = cliErrorSchema.parse(toolJson(result));
+        expect(error.code).toBe("unauthorized");
+        expect(error.message).toContain("todo-cat login");
+      } finally {
+        await signedOut.close();
+      }
+    });
   });
 
   test("logs out, revokes the session, and whoami fails afterwards", async () => {

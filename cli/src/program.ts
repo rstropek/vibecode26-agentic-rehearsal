@@ -1,27 +1,13 @@
-import type { TodoStatus } from "@todo-cat/contract";
-import { Command, CommanderError, Option } from "commander";
+import { Command, CommanderError } from "commander";
 import packageJson from "../package.json" with { type: "json" };
-import {
-  addTodo,
-  deleteTodo,
-  getTodo,
-  listTodos,
-  type Session,
-  updateTodo,
-} from "./api";
-import { currentUser, deviceLogin, revokeSession, type User } from "./auth";
+import { currentUser, deviceLogin, revokeSession } from "./auth";
+import { commands, type TodoCommand } from "./commands";
 import { loadToken, removeToken, saveToken, serverUrl } from "./config";
-import { CliError, exitCodeHelp } from "./errors";
-import {
-  createOutput,
-  type Output,
-  printError,
-  todoDetails,
-  todoLine,
-  todoList,
-} from "./output";
+import { CliError, exitCodeHelp, toCliError } from "./errors";
+import { serveMcp } from "./mcp";
+import { createOutput, type Output, printError, userText } from "./output";
 
-// The commands. Each one parses its arguments, calls api.ts or auth.ts, and prints through output.ts.
+// The CLI. The commands on the list are defined in commands.ts and added here; login, logout, and mcp are CLI-only.
 
 const environmentHelp = `Environment:
   TODO_CAT_URL     server to talk to (default: http://localhost:3000)
@@ -31,20 +17,44 @@ const environmentHelp = `Environment:
 const examples = (lines: string[]) =>
   `\nExamples:\n${lines.map((line) => `  $ ${line}`).join("\n")}`;
 
-async function requireSession(): Promise<Session> {
-  const server = serverUrl();
-  const token = await loadToken(server);
-  if (!token) {
-    throw new CliError(
-      "unauthorized",
-      `Not logged in to ${server}; run \`todo-cat login\``,
+// Adds one of the shared commands from commands.ts: its arguments and options map to the tool input,
+// and a destructive command refuses to run without --yes, since a terminal has no confirmation dialog.
+function addTodoCommand(
+  program: Command,
+  command: TodoCommand,
+  output: () => Output,
+): void {
+  const { cli, annotations } = command;
+  const destructive = !annotations.readOnly && annotations.destructive;
+  const sub = program
+    .command(command.name)
+    .description(
+      destructive
+        ? `${command.description}; requires --yes`
+        : command.description,
     );
+  if (cli.alias) sub.alias(cli.alias);
+  for (const [name, description] of cli.arguments ?? []) {
+    sub.argument(name, description);
   }
-  return { server, token };
-}
-
-function userText(user: User): string {
-  return `${user.name} <${user.email}>`;
+  for (const option of cli.options ?? []) sub.addOption(option);
+  if (destructive) {
+    sub.option("-y, --yes", "confirm (there is no prompt and no undo)");
+  }
+  sub.addHelpText("after", examples(cli.examples)).action(async () => {
+    const out = output();
+    const options = sub.opts();
+    if (destructive && options.yes !== true) {
+      throw new CliError(
+        "usage",
+        `Refusing to ${command.name} without --yes; it cannot be undone`,
+      );
+    }
+    const { text, data } = await command.execute(
+      cli.toInput(sub.args, options),
+    );
+    out.result(text, data);
+  });
 }
 
 export function buildProgram(): Command {
@@ -159,181 +169,25 @@ ${examples(["todo-cat login", "TODO_CAT_URL=https://todo.example.com todo-cat lo
       out.result(`Logged out of ${server}.`, { server, loggedOut: true });
     });
 
-  program
-    .command("whoami")
-    .description("show the signed-in user and the server")
-    .addHelpText(
-      "after",
-      examples(["todo-cat whoami", "todo-cat whoami --json"]),
-    )
-    .action(async () => {
-      const out = output();
-      const { server, token } = await requireSession();
-      const user = await currentUser(server, token);
-      if (!user) {
-        throw new CliError(
-          "unauthorized",
-          `The session for ${server} is no longer valid; run \`todo-cat login\``,
-        );
-      }
-      out.result(`Logged in to ${server} as ${userText(user)}.`, {
-        server,
-        user,
-      });
-    });
+  for (const command of commands) addTodoCommand(program, command, output);
 
   program
-    .command("list")
-    .alias("ls")
+    .command("mcp")
     .description(
-      "list todos, open before done, then by due date (columns: id, done, due, title)",
+      "run a Model Context Protocol server with every command above, except login and logout, as a tool",
     )
-    .addOption(
-      new Option("-s, --status <status>", "which todos to show")
-        .choices(["open", "done", "all"])
-        .default("all"),
-    )
-    .option(
-      "-q, --search <text>",
-      "only titles containing this text (case-insensitive)",
-    )
+    .requiredOption("--stdio", "serve over stdin and stdout")
     .addHelpText(
       "after",
-      examples([
-        "todo-cat list",
-        "todo-cat list --status open --search food",
-        "todo-cat list --json",
-      ]),
+      `
+For MCP hosts that start the server themselves, e.g. Claude Code:
+  claude mcp add todo-cat -- npx todo-cat mcp --stdio
+The server starts without a login; until \`todo-cat login\` succeeds, every tool
+call fails with "unauthorized". Destructive tools are annotated instead of
+asking for --yes, and errors are tool results carrying {"error":{"code","message"}}.
+${examples(["todo-cat mcp --stdio", "TODO_CAT_URL=https://todo.example.com todo-cat mcp --stdio"])}`,
     )
-    .action(async (options: { status: TodoStatus; search?: string }) => {
-      const out = output();
-      const todos = await listTodos(await requireSession(), options);
-      out.result(todoList(todos), todos);
-    });
-
-  program
-    .command("show")
-    .description("show one todo")
-    .argument("<id>", "the todo's id, as printed by list")
-    .addHelpText(
-      "after",
-      examples(["todo-cat show 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"]),
-    )
-    .action(async (id: string) => {
-      const out = output();
-      const todo = await getTodo(await requireSession(), id);
-      out.result(todoDetails(todo), todo);
-    });
-
-  program
-    .command("add")
-    .description("add a todo; the words of the title may be given unquoted")
-    .argument("<title...>", "what needs doing")
-    .option("-d, --due <date>", "due date as yyyy-mm-dd")
-    .addHelpText(
-      "after",
-      examples([
-        "todo-cat add Buy cat food",
-        'todo-cat add "Vet appointment" --due 2026-10-12',
-        "todo-cat add Brush Lissie --json",
-      ]),
-    )
-    .action(async (words: string[], options: { due?: string }) => {
-      const out = output();
-      const todo = await addTodo(await requireSession(), {
-        title: words.join(" "),
-        dueDate: options.due,
-      });
-      out.result(`Added ${todoLine(todo)}`, todo);
-    });
-
-  program
-    .command("edit")
-    .description("change a todo's title or due date")
-    .argument("<id>", "the todo's id, as printed by list")
-    .option("-t, --title <title>", "new title")
-    .option("-d, --due <date>", "new due date as yyyy-mm-dd")
-    .option("--no-due", "remove the due date")
-    .addHelpText(
-      "after",
-      examples([
-        'todo-cat edit 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed --title "Buy more cat food"',
-        "todo-cat edit 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed --no-due",
-      ]),
-    )
-    .action(
-      async (id: string, options: { title?: string; due?: string | false }) => {
-        const out = output();
-        if (options.title === undefined && options.due === undefined) {
-          throw new CliError(
-            "usage",
-            "Nothing to change; pass --title, --due, or --no-due",
-          );
-        }
-        const todo = await updateTodo(await requireSession(), id, {
-          title: options.title,
-          dueDate: options.due === false ? null : options.due,
-        });
-        out.result(`Updated ${todoLine(todo)}`, todo);
-      },
-    );
-
-  program
-    .command("done")
-    .description("mark a todo as done")
-    .argument("<id>", "the todo's id, as printed by list")
-    .addHelpText(
-      "after",
-      examples(["todo-cat done 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"]),
-    )
-    .action(async (id: string) => {
-      const out = output();
-      const todo = await updateTodo(await requireSession(), id, {
-        done: true,
-      });
-      out.result(`Done ${todoLine(todo)}`, todo);
-    });
-
-  program
-    .command("reopen")
-    .description("mark a done todo as open again")
-    .argument("<id>", "the todo's id, as printed by list")
-    .addHelpText(
-      "after",
-      examples(["todo-cat reopen 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"]),
-    )
-    .action(async (id: string) => {
-      const out = output();
-      const todo = await updateTodo(await requireSession(), id, {
-        done: false,
-      });
-      out.result(`Reopened ${todoLine(todo)}`, todo);
-    });
-
-  program
-    .command("delete")
-    .alias("rm")
-    .description("delete a todo for good; requires --yes")
-    .argument("<id>", "the todo's id, as printed by list")
-    .option(
-      "-y, --yes",
-      "confirm the deletion (there is no prompt and no undo)",
-    )
-    .addHelpText(
-      "after",
-      examples(["todo-cat delete 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed --yes"]),
-    )
-    .action(async (id: string, options: { yes?: boolean }) => {
-      const out = output();
-      if (!options.yes) {
-        throw new CliError(
-          "usage",
-          `Refusing to delete ${id} without --yes; deleting cannot be undone`,
-        );
-      }
-      await deleteTodo(await requireSession(), id);
-      out.result(`Deleted ${id}.`, { id, deleted: true });
-    });
+    .action(() => serveMcp());
 
   return program;
 }
@@ -356,13 +210,7 @@ export async function run(argv: string[]): Promise<number> {
       printError(cliError, json);
       return cliError.exitCode;
     }
-    const cliError =
-      error instanceof CliError
-        ? error
-        : new CliError(
-            "internal",
-            error instanceof Error ? error.message : String(error),
-          );
+    const cliError = toCliError(error);
     printError(cliError, json);
     return cliError.exitCode;
   }

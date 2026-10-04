@@ -12,9 +12,9 @@ around it. Hexagonal (ports and adapters), without the ceremony.
  CLI and stdio MCP ──▶ REST /api/todos     contract/ (@todo-cat/contract, zod)
 ```
 
-Built so far: the service, the REST adapter, the CLI, Lissie's chat with her tools
-([agent.md](agent.md)), and the list on `/` with its Server Actions. MCP is planned; the rules below apply
-to it when it arrives.
+Built so far: the service, the REST adapter, the CLI with its stdio MCP server, Lissie's chat with her tools
+([agent.md](agent.md)), and the list on `/` with its Server Actions. MCP over HTTP is planned; the rules below
+apply to it when it arrives.
 
 ## The todo service
 
@@ -61,8 +61,9 @@ to it when it arrives.
   fills in. Mastra validates tool input against the contract schema before the executor runs
   and returns the error to the model, so the tools skip `parseInput`; a `TodoError` becomes
   the contract's error body as the tool result. See [agent.md](agent.md).
-- **MCP** (planned): over stdio inside the CLI (a REST client again), over HTTP inside the
-  app (calls the service, like the REST routes).
+- **MCP over stdio** (`todo-cat mcp --stdio`): inside the CLI, so a REST client again; its tools are
+  the CLI's commands, defined once in `cli/src/commands.ts`. See [cli.md](cli.md).
+- **MCP over HTTP** (planned): inside the app, calling the service like the REST routes.
 
 ## Deliberately not done
 
