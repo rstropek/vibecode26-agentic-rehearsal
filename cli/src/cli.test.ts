@@ -86,11 +86,11 @@ beforeAll(async () => {
   });
   await migrate(db, { migrationsFolder: join(root, "db/migrations") });
   const testAuth = betterAuth({
-    ...authConfig,
+    ...authConfig(),
     secret,
     baseURL: base,
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
-    plugins: [...authConfig.plugins, testUtils()],
+    plugins: [...authConfig().plugins, testUtils()],
   });
   const helpers = (await testAuth.$context).test;
   const user = await helpers.saveUser(helpers.createUser(human));

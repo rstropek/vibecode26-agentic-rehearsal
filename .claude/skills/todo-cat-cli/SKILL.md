@@ -23,6 +23,7 @@ If those tools are available to you (in Claude Code they appear as `mcp__todo-ca
 - `login` and `logout` are not tools. A tool error with code `unauthorized` means the person has to run `npx todo-cat login` in a terminal (see below); the server picks up the new login without a restart.
 
 If the person wants the tools and does not have them yet, they can register the server in Claude Code from the repo root with `claude mcp add todo-cat -- npx todo-cat mcp --stdio`; registering it is their call, like logging in.
+The app also serves the same tools at `/api/mcp`, signed in through the browser instead of `todo-cat login` (see `tech-docs/mcp.md`); there an expired sign-in is the host's re-authentication, not a tool error.
 
 ## Before anything else: are you logged in?
 

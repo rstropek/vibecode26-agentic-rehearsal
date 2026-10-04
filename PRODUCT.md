@@ -12,7 +12,7 @@ web
 
 - Busy people with a cat and too many errands, keeping a personal to-do list.
 - They add todos, check them off, and ask Lissie about the list, on desktop and on the phone.
-- Second audience: AI agents working for one of those people, through the `todo-cat` CLI or its MCP server (`todo-cat mcp --stdio`). They need stable, scriptable output, not personality.
+- Second audience: AI agents working for one of those people, through the `todo-cat` CLI, its MCP server (`todo-cat mcp --stdio`), or the app's remote MCP server at `/api/mcp`. They need stable, scriptable output, not personality.
 
 ## Product Purpose
 
@@ -24,20 +24,20 @@ web
 ## Positioning
 
 - A to-do list with a keeper who has a personality: Lissie is dry, superior, and secretly caring, and she actually changes the list instead of only talking about it.
-- The same list is reachable three ways, all on one todo service: the web app (list plus chat), the REST API, and the CLI with its MCP server.
+- The same list is reachable four ways, all on one todo service: the web app (list plus chat), the REST API, the CLI with its MCP server, and the remote MCP server.
 
 ## Operating Context
 
 - The home page `/` is the working surface: Lissie's chat and the list side by side from `lg`, the list below the chat on smaller screens.
 - One ongoing conversation per user, remembered across visits; Lissie's changes show up in the list right away.
-- Sign-up and sign-in are email and password; `/device` is where a signed-in user approves a `todo-cat login` code from a terminal.
+- Sign-up and sign-in are email and password; `/device` is where a signed-in user approves a `todo-cat login` code from a terminal, and `/consent` is where they let an app such as Claude Code use their list through `/api/mcp`.
 - Agents use the `todo-cat` CLI (and its `todo-cat-cli` skill) as REST clients, with JSON output, stable error and exit codes, and no prompts.
 
 ## Capabilities and Constraints
 
 - A todo has a title, an optional due date (a calendar day), and is open or done; each user sees only their own todos.
 - Built: add, check off, reopen, and delete in the list; Lissie lists, adds, and completes or reopens todos; the CLI also edits and deletes.
-- Not built yet: editing a todo's title or due date in the web app, Lissie renaming, rescheduling, or deleting, and MCP over HTTP.
+- Not built yet: editing a todo's title or due date in the web app, and Lissie renaming, rescheduling, or deleting.
 - Deliberately absent: sharing lists between users, pagination, soft delete.
 - Lissie only talks about the list and getting things done; she declines everything else in character.
 - "Today" is the server's date, for both the list and Lissie.

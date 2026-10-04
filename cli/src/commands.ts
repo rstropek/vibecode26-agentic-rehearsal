@@ -1,11 +1,12 @@
 import {
-  createTodoInputSchema,
+  type TodoTool,
+  type TodoToolName,
   todoFilterSchema,
-  todoIdSchema,
-  updateTodoInputSchema,
+  todoIdHelp,
+  todoTools,
 } from "@todo-cat/contract";
 import { Option } from "commander";
-import { z } from "zod";
+import type { z } from "zod";
 import {
   addTodo,
   deleteTodo,
@@ -20,27 +21,15 @@ import { loadToken, serverUrl } from "./config";
 import { CliError } from "./errors";
 import { todoDetails, todoLine, todoList, userText } from "./output";
 
-// The commands that act on the signed-in user's list. Each one is defined once, here, and becomes both a CLI
-// command (program.ts) and an MCP tool (mcp.ts), so a command added to this list is a tool too.
+// The commands that act on the signed-in user's list: one per tool in the contract's todoTools, which holds their
+// names, descriptions, annotations, and input schemas. Each becomes both a CLI command (program.ts) and an MCP tool
+// (mcp.ts); here they get how they run on the REST client and how the command line maps to their input.
 // login, logout, and mcp manage the session and the server themselves, so they live in program.ts only.
-
-// Behavior hints: the CLI asks for --yes before a destructive command, and MCP sends them as tool annotations.
-export type Annotations =
-  | { readOnly: true }
-  | { readOnly: false; destructive: boolean; idempotent: boolean };
 
 // `text` for humans, `data` for --json and MCP.
 export type Result = { text: string; data: unknown };
 
 type Definition<Input extends z.ZodObject> = {
-  name: string;
-  // Display name of the MCP tool.
-  title: string;
-  // One line for `todo-cat --help` and the tool's description.
-  description: string;
-  // The tool's input schema, from the contract; the CLI checks its arguments with it too.
-  input: Input;
-  annotations: Annotations;
   // Runs with a session and checked input.
   run(session: Session, input: z.output<Input>): Promise<Result>;
   cli: {
@@ -54,19 +43,22 @@ type Definition<Input extends z.ZodObject> = {
   };
 };
 
-export type TodoCommand = Omit<Definition<z.ZodObject>, "run"> & {
-  // Checks the arguments, then runs with the stored session; fails with a CliError.
+export type TodoCommand = TodoTool & {
+  cli: Definition<z.ZodObject>["cli"];
+  // Checks the arguments with the tool's input schema, then runs with the stored session; fails with a CliError.
   execute(args: unknown): Promise<Result>;
 };
 
 function command<Input extends z.ZodObject>(
-  definition: Definition<Input>,
+  tool: TodoTool<Input>,
+  { run, cli }: Definition<Input>,
 ): TodoCommand {
   return {
-    ...definition,
+    ...tool,
+    cli,
     async execute(args) {
-      const input = parseInput(definition.input, args);
-      return definition.run(await requireSession(), input);
+      const input = parseInput(tool.input, args);
+      return run(await requireSession(), input);
     },
   };
 }
@@ -83,16 +75,9 @@ export async function requireSession(): Promise<Session> {
   return { server, token };
 }
 
-const idHelp = "the todo's id, as printed by list";
-const todoRefSchema = z.object({ id: todoIdSchema.describe(idHelp) });
-
-export const commands: TodoCommand[] = [
-  command({
-    name: "whoami",
-    title: "Who am I",
-    description: "show the signed-in user and the server",
-    input: z.strictObject({}),
-    annotations: { readOnly: true },
+// Every tool of the contract, so a tool added there fails to compile until it is a command here too.
+const byName: Record<TodoToolName, TodoCommand> = {
+  whoami: command(todoTools.whoami, {
     async run({ server, token }) {
       const user = await currentUser(server, token);
       if (!user) {
@@ -112,13 +97,7 @@ export const commands: TodoCommand[] = [
     },
   }),
 
-  command({
-    name: "list",
-    title: "List todos",
-    description:
-      "list todos, open before done, then by due date; search matches part of a title, ignoring case",
-    input: todoFilterSchema,
-    annotations: { readOnly: true },
+  list: command(todoTools.list, {
     async run(session, filter) {
       const todos = await listTodos(session, filter);
       return { text: todoList(todos), data: todos };
@@ -143,29 +122,19 @@ export const commands: TodoCommand[] = [
     },
   }),
 
-  command({
-    name: "show",
-    title: "Show a todo",
-    description: "show one todo",
-    input: todoRefSchema,
-    annotations: { readOnly: true },
+  show: command(todoTools.show, {
     async run(session, { id }) {
       const todo = await getTodo(session, id);
       return { text: todoDetails(todo), data: todo };
     },
     cli: {
-      arguments: [["<id>", idHelp]],
+      arguments: [["<id>", todoIdHelp]],
       examples: ["todo-cat show 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"],
       toInput: ([id]) => ({ id }),
     },
   }),
 
-  command({
-    name: "add",
-    title: "Add a todo",
-    description: "add a todo, optionally with a due date",
-    input: createTodoInputSchema,
-    annotations: { readOnly: false, destructive: false, idempotent: false },
+  add: command(todoTools.add, {
     async run(session, input) {
       const todo = await addTodo(session, input);
       return { text: `Added ${todoLine(todo)}`, data: todo };
@@ -184,23 +153,13 @@ export const commands: TodoCommand[] = [
     },
   }),
 
-  command({
-    name: "edit",
-    title: "Edit a todo",
-    description: "change a todo's title or due date",
-    input: todoRefSchema.extend({
-      title: updateTodoInputSchema.shape.title,
-      dueDate: updateTodoInputSchema.shape.dueDate.describe(
-        "the new due date as yyyy-mm-dd, or null to remove it",
-      ),
-    }),
-    annotations: { readOnly: false, destructive: false, idempotent: true },
+  edit: command(todoTools.edit, {
     async run(session, { id, ...changes }) {
       const todo = await updateTodo(session, id, changes);
       return { text: `Updated ${todoLine(todo)}`, data: todo };
     },
     cli: {
-      arguments: [["<id>", idHelp]],
+      arguments: [["<id>", todoIdHelp]],
       options: [
         new Option("-t, --title <title>", "new title"),
         new Option("-d, --due <date>", "new due date as yyyy-mm-dd"),
@@ -222,55 +181,42 @@ export const commands: TodoCommand[] = [
     },
   }),
 
-  command({
-    name: "done",
-    title: "Mark a todo as done",
-    description: "mark a todo as done",
-    input: todoRefSchema,
-    annotations: { readOnly: false, destructive: false, idempotent: true },
+  done: command(todoTools.done, {
     async run(session, { id }) {
       const todo = await updateTodo(session, id, { done: true });
       return { text: `Done ${todoLine(todo)}`, data: todo };
     },
     cli: {
-      arguments: [["<id>", idHelp]],
+      arguments: [["<id>", todoIdHelp]],
       examples: ["todo-cat done 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"],
       toInput: ([id]) => ({ id }),
     },
   }),
 
-  command({
-    name: "reopen",
-    title: "Reopen a todo",
-    description: "mark a done todo as open again",
-    input: todoRefSchema,
-    annotations: { readOnly: false, destructive: false, idempotent: true },
+  reopen: command(todoTools.reopen, {
     async run(session, { id }) {
       const todo = await updateTodo(session, id, { done: false });
       return { text: `Reopened ${todoLine(todo)}`, data: todo };
     },
     cli: {
-      arguments: [["<id>", idHelp]],
+      arguments: [["<id>", todoIdHelp]],
       examples: ["todo-cat reopen 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"],
       toInput: ([id]) => ({ id }),
     },
   }),
 
-  command({
-    name: "delete",
-    title: "Delete a todo",
-    description: "delete a todo for good",
-    input: todoRefSchema,
-    annotations: { readOnly: false, destructive: true, idempotent: true },
+  delete: command(todoTools.delete, {
     async run(session, { id }) {
       await deleteTodo(session, id);
       return { text: `Deleted ${id}.`, data: { id, deleted: true } };
     },
     cli: {
       alias: "rm",
-      arguments: [["<id>", idHelp]],
+      arguments: [["<id>", todoIdHelp]],
       examples: ["todo-cat delete 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed --yes"],
       toInput: ([id]) => ({ id }),
     },
   }),
-];
+};
+
+export const commands: TodoCommand[] = Object.values(byName);

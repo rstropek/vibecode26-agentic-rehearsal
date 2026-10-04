@@ -6,11 +6,13 @@ import * as schema from "@/db/schema";
 import { authConfig } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
+const config = authConfig();
+
 // Reads BETTER_AUTH_SECRET and BETTER_AUTH_URL from the environment.
 // Sessions are read only through getUserId in lib/session.ts; see tech-docs/auth.md.
 export const auth = betterAuth({
-  ...authConfig,
+  ...config,
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // nextCookies lets Server Actions set the session cookie and must stay last.
-  plugins: [...authConfig.plugins, nextCookies()],
+  plugins: [...config.plugins, nextCookies()],
 });

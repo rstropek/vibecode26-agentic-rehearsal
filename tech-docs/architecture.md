@@ -12,9 +12,8 @@ around it. Hexagonal (ports and adapters), without the ceremony.
  CLI and stdio MCP ──▶ REST /api/todos     contract/ (@todo-cat/contract, zod)
 ```
 
-Built so far: the service, the REST adapter, the CLI with its stdio MCP server, Lissie's chat with her tools
-([agent.md](agent.md)), and the list on `/` with its Server Actions. MCP over HTTP is planned; the rules below
-apply to it when it arrives.
+Built: the service, the REST adapter, the CLI with its stdio MCP server, MCP over HTTP ([mcp.md](mcp.md)), Lissie's
+chat with her tools ([agent.md](agent.md)), and the list on `/` with its Server Actions.
 
 ## The todo service
 
@@ -48,6 +47,7 @@ apply to it when it arrives.
 - An adapter does four things: parse the input with a contract schema through the
   service's `parseInput` (so a bad input is always `validation-failed`), resolve the user
   with `getUserId` (from `lib/session.ts`), call the service, map errors to its protocol.
+  MCP over HTTP is the exception to `getUserId`: its user is the verified OAuth access token's subject.
   No business rules in adapters.
 - **REST** (`/api/todos`): for non-browser clients. Bearer token or session cookie;
   see [rest-api.md](rest-api.md).
@@ -62,8 +62,9 @@ apply to it when it arrives.
   and returns the error to the model, so the tools skip `parseInput`; a `TodoError` becomes
   the contract's error body as the tool result. See [agent.md](agent.md).
 - **MCP over stdio** (`todo-cat mcp --stdio`): inside the CLI, so a REST client again; its tools are
-  the CLI's commands, defined once in `cli/src/commands.ts`. See [cli.md](cli.md).
-- **MCP over HTTP** (planned): inside the app, calling the service like the REST routes.
+  the CLI's commands in `cli/src/commands.ts`. See [cli.md](cli.md).
+- **MCP over HTTP** (`POST /api/mcp`): inside the app, calling the service like the REST routes, for the user of
+  an OAuth access token. Both MCP servers take their tools from `contract/src/tools.ts`; see [mcp.md](mcp.md).
 
 ## Deliberately not done
 

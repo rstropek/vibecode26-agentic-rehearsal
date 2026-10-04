@@ -26,16 +26,17 @@ beforeAll(async () => {
   );
   vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
   ({ db } = await import("./db"));
+  // Before Better Auth is imported: creating `auth` seeds the OAuth resource table.
+  await migrate(db, { migrationsFolder: "db/migrations" });
   ({ auth } = await import("./auth"));
   ({ getUserId } = await import("./session"));
-  await migrate(db, { migrationsFolder: "db/migrations" });
 
   // test-utils stays out of the production config: a test-only instance on the same database and secret
   // creates sessions that the real `auth` (and so getUserId) accepts.
   const testAuth = betterAuth({
-    ...authConfig,
+    ...authConfig(),
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
-    plugins: [...authConfig.plugins, testUtils()],
+    plugins: [...authConfig().plugins, testUtils()],
   });
   helpers = (await testAuth.$context).test;
 });

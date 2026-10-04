@@ -8,7 +8,8 @@ Its main users are AI agents working for a human, so it is built to be scripted:
 - `npx todo-cat --help` from the repo root after `npm install`, with `npm run dev` running; every command has its own `--help` with examples.
 - `TODO_CAT_URL` picks the server (default `http://localhost:3000`); `XDG_CONFIG_HOME` (`%APPDATA%` on Windows) moves the config directory.
 - The project skill `.claude/skills/todo-cat-cli/` teaches agents the workflows and pitfalls (login, finding ids by title, jq, dates, deletes); update it when commands or conventions change.
-- The commands on the list are defined once in `cli/src/commands.ts` and become both CLI commands (`cli/src/program.ts`) and MCP tools (`cli/src/mcp.ts`); `login`, `logout`, and `mcp` are CLI-only, in `program.ts`.
+- The commands on the list are the contract's tools (`contract/src/tools.ts`) implemented in `cli/src/commands.ts`, and become both CLI commands (`cli/src/program.ts`) and MCP tools (`cli/src/mcp.ts`); `login`, `logout`, and `mcp` are CLI-only, in `program.ts`.
+- The app serves the same tools over HTTP at `/api/mcp` with OAuth; [mcp.md](mcp.md) compares the two servers.
 - `app/device/` is the web page where a signed-in user approves or denies a login code.
 
 ## The MCP server
@@ -23,9 +24,9 @@ Its main users are AI agents working for a human, so it is built to be scripted:
 
 ## Design decisions
 
-- A command is a contract input schema, annotations, and a `run` on the REST client, plus a `toInput` that turns the command line into the same arguments an MCP client sends; one schema check serves both, so a new command in `commands.ts` is a new tool with no second implementation.
+- A command is a tool from the contract (name, description, input schema, annotations) plus a `run` on the REST client and a `toInput` that turns the command line into the same arguments an MCP client sends; one schema check serves both, and `commands.ts` must implement every tool of the contract to compile.
 - The input schemas are contract schemas or compositions of them (e.g. `todoIdSchema` plus `updateTodoInputSchema` fields for edit), so an id that is not a UUID is `validation-failed` before any request.
-- A command with `destructive: true` gets `-y, --yes` in the CLI automatically and refuses to run without it.
+- A command whose tool has `destructiveHint: true` gets `-y, --yes` in the CLI automatically and refuses to run without it.
 
 - Errors go to stderr as `todo-cat: <message> [<code>]`, or with `--json` as the API's error body `{ error: { code, message } }`; the code is the API's code when the server sent one, plus CLI codes such as `usage` and `server-unreachable`.
 - Each error code has one exit code (`exitCodes` in `cli/src/errors.ts`); agents branch on the exit code or the code, never on the message.
