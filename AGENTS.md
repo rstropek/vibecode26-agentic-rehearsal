@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 A to-do list web app whose lists are kept by Lissie, a cat with attitude (an AI agent, coming later).
 Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI, still empty).
-All todo logic lives in `lib/todo-service.ts`; adapters (REST, CLI, agent tools) are not built yet.
+All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it, while the CLI and agent tools are not built yet.
 
 ## Commands
 
@@ -64,6 +64,7 @@ Index:
 - [tech-docs/database.md](tech-docs/database.md): Drizzle on SQLite, the single db module, migrations, and their gotchas.
 - [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
+- [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
 
 ## Keeping this map current
 

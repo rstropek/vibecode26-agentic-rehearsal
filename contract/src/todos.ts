@@ -41,3 +41,6 @@ export const todoFilterSchema = z.object({
   search: z.string().trim().optional(),
 });
 export type TodoFilter = z.input<typeof todoFilterSchema>;
+
+// GET /api/todos answers with a bare array, in the service's order.
+export const todoListSchema = z.array(todoSchema);

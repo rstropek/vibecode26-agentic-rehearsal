@@ -68,7 +68,8 @@ around it. Hexagonal (ports and adapters), without the ceremony.
   user with `getUserId` (from `lib/session.ts`), call the service, map errors to its
   protocol. No business rules in adapters.
 - **REST** (`/api/todos`): for non-browser clients. Bearer token or session cookie,
-  401 `unauthorized` without either, 404 `todo-not-found`, 400 `validation-failed`.
+  401 `unauthorized` without either, 404 `todo-not-found`, 400 `validation-failed`;
+  see [rest-api.md](rest-api.md).
 - **CLI** (`cli/`): a client of the REST API, never of the database.
 - **Agent tools** (later): call the service directly. The user id comes from the
   server session, never from a tool argument the model fills in.
