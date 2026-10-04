@@ -25,7 +25,7 @@ function addTodoCommand(
   output: () => Output,
 ): void {
   const { cli, annotations } = command;
-  const destructive = !annotations.readOnly && annotations.destructive;
+  const destructive = !annotations.readOnlyHint && annotations.destructiveHint;
   const sub = program
     .command(command.name)
     .description(

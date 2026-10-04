@@ -95,10 +95,11 @@ beforeAll(async () => {
   vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
   vi.stubEnv("COPILOTKIT_TELEMETRY_DISABLED", "true");
   ({ db } = await import("@/lib/db"));
+  // Before Better Auth is imported: creating `auth` seeds the OAuth resource table.
+  await migrate(db, { migrationsFolder: "db/migrations" });
   authRoute = await import("../../auth/[...all]/route");
   route = await import("./route");
   ({ lissieThreadId, lissie } = await import("@/lib/lissie"));
-  await migrate(db, { migrationsFolder: "db/migrations" });
   alice = await signUp("Alice");
   bob = await signUp("Bob");
 });

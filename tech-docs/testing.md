@@ -56,6 +56,7 @@
 - `vitest.setup.ts` stubs `server-only`, which otherwise throws when a test imports a server module such as `lib/db.ts`.
 - The default environment is jsdom, so tests that touch the database, auth, or the file system start with the `// @vitest-environment node` docblock.
 - Vitest does not load `.env`, so tests that import `lib/db.ts` or `lib/auth.ts` stub `DATABASE_URL` and the `BETTER_AUTH_*` variables before a dynamic import; see `lib/auth.test.ts`.
+- Those tests migrate right after importing `lib/db.ts` and before anything that imports `lib/auth.ts`, because creating `auth` seeds an OAuth table at once.
 - Testing Library's automatic cleanup needs Vitest globals, which are off, so `vitest.setup.ts` calls `cleanup()` after each test.
 - Vitest cannot render async Server Components; test them through Playwright.
 - Server Actions run in Vitest when `next/headers` (a bearer token from a real sign-up), `next/cache`, and `next/navigation` are mocked; see `app/todo-actions.test.ts`.

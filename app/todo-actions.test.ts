@@ -38,10 +38,11 @@ beforeAll(async () => {
   );
   vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
   ({ db } = await import("@/lib/db"));
+  // Before Better Auth is imported: creating `auth` seeds the OAuth resource table.
+  await migrate(db, { migrationsFolder: "db/migrations" });
   ({ auth } = await import("@/lib/auth"));
   service = await import("@/lib/todo-service");
   actions = await import("./todo-actions");
-  await migrate(db, { migrationsFolder: "db/migrations" });
 });
 
 afterAll(() => {

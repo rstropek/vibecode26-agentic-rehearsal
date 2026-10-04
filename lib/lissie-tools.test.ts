@@ -33,10 +33,11 @@ beforeAll(async () => {
   // lib/db.ts reads DATABASE_URL on import, so point it at the temp file first.
   vi.stubEnv("DATABASE_URL", `file:${join(dir, "test.db")}`);
   ({ db } = await import("./db"));
+  // Before Better Auth is imported: creating `auth` seeds the OAuth resource table.
+  await migrate(db, { migrationsFolder: "db/migrations" });
   tools = await import("./lissie-tools");
   service = await import("./todo-service");
   ({ lissieRequestContext } = await import("./lissie"));
-  await migrate(db, { migrationsFolder: "db/migrations" });
 });
 
 beforeEach(async () => {
