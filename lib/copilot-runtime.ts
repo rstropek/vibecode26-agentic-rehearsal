@@ -13,12 +13,12 @@ import { Observable } from "rxjs";
 import { z } from "zod";
 import {
   LISSIE_AGENT_ID,
-  lissie,
   lissieRequestContext,
   lissieThreadId,
   loadLissieHistory,
 } from "@/lib/lissie";
 import { LissieCards } from "@/lib/lissie-cards";
+import { lissieAgent } from "@/lib/mastra";
 
 // The CopilotKit runtime that serves Lissie over AG-UI at /api/copilotkit; see tech-docs/agent.md.
 // The route resolves the signed-in user first and builds this handler per request around their id,
@@ -114,7 +114,8 @@ export function createLissieHandler(
     agents: {
       [LISSIE_AGENT_ID]: new MastraAgent({
         agentId: LISSIE_AGENT_ID,
-        agent: lissie,
+        // Lissie as registered in the Mastra instance, which traces her runs when tracing is on (lib/mastra.ts).
+        agent: lissieAgent,
         resourceId: userId,
         // The only way the user id reaches Lissie's tools (lib/lissie-tools.ts); the bridge adds the client's AG-UI
         // context under its own "ag-ui" key and never touches these.

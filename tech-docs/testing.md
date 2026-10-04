@@ -61,6 +61,8 @@
 - Vitest cannot render async Server Components; test them through Playwright.
 - Server Actions run in Vitest when `next/headers` (a bearer token from a real sign-up), `next/cache`, and `next/navigation` are mocked; see `app/todo-actions.test.ts`.
 - Writes on the list are optimistic and Server Actions run one at a time, so an e2e test waits for the list's `aria-busy="false"` before reloading, or the reload cancels writes still queued.
+- `MastraLanguageModelV2Mock` with only a scripted `doStream` cannot serve an agent's `generate`, which calls `doGenerate`; run the agent with `stream`, as the CopilotKit bridge does.
+- `vitest.config.mts` and the e2e server set `OTEL_EXPORTER_OTLP_ENDPOINT` to empty, so no test exports traces whatever `.env` or the shell says; see [observability.md](observability.md).
 - A test that calls a Mastra tool's `execute` directly passes `observe: noopObserve` (from `@mastra/core/tools`) next to the request context, because the context type requires it.
 - Next.js renders its own empty `role="alert"` route announcer, so e2e tests match a form error with `getByRole("alert").filter({ hasText })`, not by role alone.
 - Vitest 5 needs `@types/node` 22 or newer, so the root pins `@types/node` to the Node 24 runtime.

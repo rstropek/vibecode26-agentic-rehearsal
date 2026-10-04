@@ -19,7 +19,9 @@
     "db:reset": "node scripts/db-reset.mts && drizzle-kit migrate",
     "auth:generate": "auth generate --config db/auth-cli.ts --output db/auth-schema.ts --yes && biome check --write db/auth-schema.ts",
     "qa": "scripts/qa.sh",
-    "db:seed": "tsx --conditions=react-server scripts/db-seed.mts"
+    "db:seed": "tsx --conditions=react-server scripts/db-seed.mts",
+    "dashboard:start": "docker run --detach --rm --name todo-cat-dashboard --publish 18888:18888 --publish 4317:18889 --publish 4318:18890 --env ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true mcr.microsoft.com/dotnet/aspire-dashboard:13.5.2",
+    "dashboard:stop": "docker stop todo-cat-dashboard"
   },
   "dependencies": {
     "@ag-ui/client": "1.0.1",
@@ -36,7 +38,10 @@
     "@mastra/core": "1.74.0",
     "@mastra/libsql": "1.25.0",
     "@mastra/memory": "1.35.0",
+    "@mastra/observability": "1.18.3",
+    "@mastra/otel-exporter": "1.4.4",
     "@modelcontextprotocol/server": "2.3.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.218.0",
     "better-auth": "1.7.7",
     "drizzle-orm": "1.0.0-rc.4",
     "next": "16.3.8",
