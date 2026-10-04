@@ -13,8 +13,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 A to-do list web app whose lists are kept by Lissie, a cat with attitude: a Mastra agent you chat with on `/`.
 Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans).
 All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that.
-Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos, shown in a read-only list next to the chat.
-Not built yet: editing todos in the browser other than through Lissie, and MCP.
+Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos.
+Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
+Not built yet: editing a todo's title or due date, and MCP.
 `README.md` is still the create-next-app boilerplate; this file and `tech-docs/` are the project docs.
 
 ## First-time setup
@@ -79,6 +80,7 @@ Index:
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
 - [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, her tools and how they get the user id, the CopilotKit runtime and its route authorization, history replay, and the chat UI with the list next to it.
+- [tech-docs/ui.md](tech-docs/ui.md): the "Scratched off" design direction, where tokens and shared components live, the list's interaction details, and the CopilotKit styling gotchas.
 - [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
 
 ## Keeping this map current

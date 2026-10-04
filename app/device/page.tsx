@@ -120,11 +120,11 @@ export default async function DevicePage({
       title="Let the terminal in?"
       lede="The todo-cat CLI wants to read and change your lists as you."
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 rounded-md border border-line bg-paper-raised px-5 py-4">
         <p className="text-sm font-medium text-muted">
           Code from your terminal
         </p>
-        <p className="font-mono text-4xl font-bold tracking-widest text-ink">
+        <p className="voice text-5xl tracking-[0.08em] text-ink tabular-nums">
           {displayCode(userCode)}
         </p>
       </div>

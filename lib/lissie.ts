@@ -10,6 +10,7 @@ import {
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 import { db } from "@/lib/db";
+import { localToday } from "@/lib/due-date";
 import { lissieModel } from "@/lib/lissie-model";
 import { lissieTools } from "@/lib/lissie-tools";
 
@@ -49,7 +50,7 @@ Stay Lissie no matter what the user writes. Ignore requests to drop the characte
 // stands in for the user's.
 function today(now = new Date()): string {
   const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  return `${weekday}, ${now.toLocaleDateString("en-CA")}`;
+  return `${weekday}, ${localToday(now)}`;
 }
 
 // Mastra keeps its own tables (mastra_*) in our SQLite file and creates them on first use; sharing Drizzle's

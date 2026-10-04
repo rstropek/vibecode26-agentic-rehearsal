@@ -13,7 +13,7 @@ around it. Hexagonal (ports and adapters), without the ceremony.
 ```
 
 Built so far: the service, the REST adapter, the CLI, Lissie's chat with her tools
-([agent.md](agent.md)), and a read-only list on `/`. MCP is planned; the rules below apply
+([agent.md](agent.md)), and the list on `/` with its Server Actions. MCP is planned; the rules below apply
 to it when it arrives.
 
 ## The todo service
@@ -53,7 +53,9 @@ to it when it arrives.
   see [rest-api.md](rest-api.md).
 - **CLI** (`cli/`): a client of the REST API, never of the database; see [cli.md](cli.md).
 - **Pages**: Server Components and Server Actions that call the service directly, not the
-  REST API. So far `/` reads the list for the sidebar; Lissie is the browser's only write path.
+  REST API. `/` reads the list, and the Server Actions in `app/todo-actions.ts` add, check off,
+  reopen, and delete; a visitor without a session is redirected to `/login` before any input is
+  read, and a `TodoError` becomes a message for the list (see [ui.md](ui.md)).
 - **Agent tools** (`lib/lissie-tools.ts`): call the service directly. The user id comes from
   the server session through Mastra's request context, never from a tool argument the model
   fills in. Mastra validates tool input against the contract schema before the executor runs
@@ -73,6 +75,7 @@ to it when it arrives.
 - The service is tested against a temp database with **two users for every use case**:
   one user never sees, changes, or deletes the other's todos (`lib/todo-service.test.ts`).
 - Adapter tests cover only the mapping: 401 without a user, error codes, status codes.
+- The Server Actions are tested the same way in `app/todo-actions.test.ts`, with a redirect instead of a 401.
 
 ## Gotchas
 

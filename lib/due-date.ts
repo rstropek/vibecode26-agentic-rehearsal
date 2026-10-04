@@ -11,3 +11,8 @@ const format = new Intl.DateTimeFormat("en-US", {
 export function formatDueDate(dueDate: string): string {
   return format.format(new Date(`${dueDate}T00:00:00Z`));
 }
+
+// Today as a calendar day (`yyyy-mm-dd`) in the server's time zone, which stands in for the user's.
+export function localToday(now = new Date()): string {
+  return now.toLocaleDateString("en-CA");
+}

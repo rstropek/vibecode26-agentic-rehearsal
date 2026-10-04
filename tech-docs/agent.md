@@ -22,7 +22,7 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 - `app/api/copilotkit/[[...slug]]/route.ts`: resolves the session and hands the request to the runtime.
 - `app/lissie-chat.tsx`: the client chat; `app/page.tsx` passes it the thread id and renders the list next to it.
 - `app/lissie-tool-calls.tsx`: one line per tool call in the chat, and the refresh of the list when a tool changes it.
-- `app/todo-sidebar.tsx`: the read-only list, a Server Component fed by `listTodos`.
+- `app/todo-list.tsx`: the list next to the chat, fed by `listTodos` in `app/page.tsx`; see [ui.md](ui.md).
 
 ## Model
 
@@ -70,18 +70,16 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 - `CopilotKit` from `@copilotkit/react-core/v2` with `useSingleEndpoint={false}` to match the multi-route handler, and `enableInspector={false}` because the inspector's thread routes are denied.
 - `CopilotChat` gets an explicit `threadId`, which makes it connect (replay) on mount instead of minting a fresh thread; it does not run the model until the user sends a message.
 - Tool calls render through `useRenderTool`, one per tool, as one line each ("Added “buy milk”, due Fri, Oct 9"), parsed from the tool result with the shared schemas; anything unparsable shows as a failed call.
-- The list next to the chat is a Server Component; a subscription on the shared `lissie` agent calls `router.refresh()` when an `addTodo` or `setTodoDone` result arrives, while a replay (one `MESSAGES_SNAPSHOT`) refreshes nothing.
+- The list next to the chat gets its todos from the page; a subscription on the shared `lissie` agent calls `router.refresh()` when an `addTodo` or `setTodoDone` result arrives, while a replay (one `MESSAGES_SNAPSHOT`) refreshes nothing.
 - Below `lg` the page scrolls, the chat keeps most of the screen, and the list follows it; from `lg` the list sits next to the chat.
-- The chat's shadcn tokens are mapped to the app's theme in `app/globals.css` on every `[data-copilotkit]`, because tooltips and menus portal to `<body>`; CopilotKit's `--muted` is a surface while ours is text, hence the `--color-*` indirection.
-- Inside the chat, `text-muted` resolves to CopilotKit's `--muted` surface color and disappears; use `text-(--color-muted)`, as the tool lines do.
-- CopilotKit hard-codes greys (message prose, input, send and toolbar buttons) and darkens them only under a `.dark` class, while the app follows `prefers-color-scheme`, so `globals.css` overrides them by `data-testid`; check new chat features in both color schemes.
+- Styling the chat has its own gotchas (token mapping, hard-coded greys, `text-muted`); see [ui.md](ui.md).
 
 ## Tests
 
 - `lib/lissie-tools.test.ts` runs the tool executors on a temp database with the request context the runtime builds: per-user isolation, a user id in the input ignored, not found for another user's todo, and no tool runs without a user.
 - `app/api/copilotkit/[[...slug]]/route.test.ts` runs the real route on a temp database with a scripted Mastra mock model (`MastraLanguageModelV2Mock`, which answers "Add <title>" with an `addTodo` call): 401 on every runtime route, 404 on routes the chat does not use, no run, connect, stop, or thread read on another user's thread, memory scoped to the user, no session token in the model call's headers, replay after the in-memory store is cleared (a restart), the tool acting for the session's user, replayed tool calls matching the live ids, and no duplicate messages when replayed history is sent back.
 - `e2e/chat.spec.ts` (in QA) checks that `/` shows the chat and connects without running the model.
-- `e2e/todos.spec.ts` (in QA) checks the list next to the chat, with todos created through the REST API.
+- `e2e/todos.spec.ts` (in QA) checks the list next to the chat: todos created through the REST API show up, and adding, checking off, reopening, and deleting with confirmation work in the browser.
 - `e2e/chat.model.spec.ts` talks to the real model and checks the reply survives a reload, and `e2e/todos.model.spec.ts` asks Lissie to add "buy milk" and finds it in the list and her tool call after a reload; they run only with `npm run test:e2e:model` (the latter also alone with `npm run test:e2e:model:todos`), never in QA or CI.
 
 ## Gotchas

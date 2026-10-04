@@ -1,25 +1,28 @@
 @import "tailwindcss";
 
-/* Plum ink on lilac-grey paper, with Lissie's amber eyes for focus and emphasis. */
+/* "Scratched off": Lissie's ledger. Plum ink on lilac coat-grey paper, a raised sheet for the list, her amber eyes for
+   focus, checks, and the claw marks through done todos, and her rose nose for overdue and delete. See tech-docs/ui.md. */
 :root {
-  --paper: #f1eef6;
-  --paper-raised: #ffffff;
-  --ink: #2b1b3d;
-  --muted: #6e6280;
-  --line: #d5cde2;
-  --amber: #e8a33d;
-  --danger: #b4232c;
+  color-scheme: light dark;
+  --paper: #eeeaf4;
+  --paper-raised: #fbfafd;
+  --ink: #2a1a3c;
+  --muted: #65587a;
+  --line: #d6cee3;
+  --amber: #e39a2f;
+  --on-amber: #2a1a3c;
+  --danger: #b0283f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #1d1428;
-    --paper-raised: #2a1f38;
-    --ink: #f1eef6;
-    --muted: #b3a8c4;
-    --line: #4a3d5c;
-    --amber: #f0b45a;
-    --danger: #ff8a8f;
+    --paper: #1c1327;
+    --paper-raised: #281d36;
+    --ink: #f2eef7;
+    --muted: #b4a9c6;
+    --line: #44375a;
+    --amber: #f2b455;
+    --danger: #ff8fa3;
   }
 }
 
@@ -30,6 +33,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-amber: var(--amber);
+  --color-on-amber: var(--on-amber);
   --color-danger: var(--danger);
   --font-sans: var(--font-bricolage);
 }
@@ -40,11 +44,49 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Lissie's voice: Bricolage at its narrowest width and heaviest weight, for her headlines and the wordmark. */
+@utility voice {
+  font-stretch: 75%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.9;
+}
+
+/* The claw marks through a done todo (app/todo-list.tsx): three tapered strokes, scratched in one after the other,
+   left to right, when a todo becomes done while the page is open, and already there when it was done before. */
+.claw-marks path {
+  fill: currentColor;
+  opacity: 0.9;
+}
+.claw-marks-drawing path {
+  animation: claw-scratch 160ms cubic-bezier(0.6, 0, 0.3, 1) both;
+}
+.claw-marks-drawing path:nth-child(2) {
+  animation-delay: 70ms;
+}
+.claw-marks-drawing path:nth-child(3) {
+  animation-delay: 140ms;
+}
+@keyframes claw-scratch {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .claw-marks-drawing path {
+    animation: none;
+  }
+}
+
 /* CopilotKit's chat (app/lissie-chat.tsx) reads shadcn tokens on [data-copilotkit]; point them at ours.
    :root outranks CopilotKit's own unlayered [data-copilotkit] defaults and also reaches its tooltips and menus,
-   which portal to <body>, outside .lissie-chat. Our --muted means text, theirs a surface, so map through --color-*. */
+   which portal to <body>, outside .lissie-chat. Our --muted means text, theirs a surface, so map through --color-*.
+   The chat sits on the page's paper; the user's messages and the input are raised like the list. */
 :root [data-copilotkit] {
-  --background: var(--color-paper-raised);
+  --background: var(--color-paper);
   --foreground: var(--color-ink);
   --card: var(--color-paper-raised);
   --card-foreground: var(--color-ink);
@@ -52,11 +94,11 @@ body {
   --popover-foreground: var(--color-ink);
   --primary: var(--color-ink);
   --primary-foreground: var(--color-paper);
-  --secondary: var(--color-paper);
+  --secondary: var(--color-paper-raised);
   --secondary-foreground: var(--color-ink);
-  --muted: var(--color-paper);
+  --muted: var(--color-paper-raised);
   --muted-foreground: var(--color-muted);
-  --accent: var(--color-paper);
+  --accent: var(--color-paper-raised);
   --accent-foreground: var(--color-ink);
   --destructive: var(--color-danger);
   --border: var(--color-line);
@@ -93,7 +135,7 @@ body {
 
 /* The input: white or #303030 with a black hairline shadow, and no focus indicator. */
 [data-testid="copilot-chat-input"] {
-  background: var(--color-paper);
+  background: var(--color-paper-raised);
   box-shadow: 0 0 0 1px var(--color-line);
 }
 [data-testid="copilot-chat-input"]:focus-within {
@@ -101,6 +143,11 @@ body {
 }
 [data-testid="copilot-chat-textarea"]::placeholder {
   color: var(--color-muted);
+}
+
+/* The user's messages: a raised bubble (--muted above) with a hairline edge to stand off the paper. */
+[data-testid="copilot-user-message"] .cpk\:prose {
+  box-shadow: 0 0 0 1px var(--color-line);
 }
 
 /* Send: black or white. */
@@ -127,7 +174,7 @@ body {
 }
 [data-testid="copilot-assistant-toolbar"] button:enabled:hover,
 [data-testid="copilot-user-toolbar"] button:enabled:hover {
-  background: var(--color-paper);
+  background: var(--color-line);
   color: var(--color-ink);
 }
 

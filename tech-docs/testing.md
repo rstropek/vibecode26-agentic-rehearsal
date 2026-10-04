@@ -57,6 +57,8 @@
 - Vitest does not load `.env`, so tests that import `lib/db.ts` or `lib/auth.ts` stub `DATABASE_URL` and the `BETTER_AUTH_*` variables before a dynamic import; see `lib/auth.test.ts`.
 - Testing Library's automatic cleanup needs Vitest globals, which are off, so `vitest.setup.ts` calls `cleanup()` after each test.
 - Vitest cannot render async Server Components; test them through Playwright.
+- Server Actions run in Vitest when `next/headers` (a bearer token from a real sign-up), `next/cache`, and `next/navigation` are mocked; see `app/todo-actions.test.ts`.
+- Writes on the list are optimistic and Server Actions run one at a time, so an e2e test waits for the list's `aria-busy="false"` before reloading, or the reload cancels writes still queued.
 - A test that calls a Mastra tool's `execute` directly passes `observe: noopObserve` (from `@mastra/core/tools`) next to the request context, because the context type requires it.
 - Next.js renders its own empty `role="alert"` route announcer, so e2e tests match a form error with `getByRole("alert").filter({ hasText })`, not by role alone.
 - Vitest 5 needs `@types/node` 22 or newer, so the root pins `@types/node` to the Node 24 runtime.
