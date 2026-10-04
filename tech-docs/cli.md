@@ -7,6 +7,7 @@ Its main users are AI agents working for a human, so it is built to be scripted:
 
 - `npx todo-cat --help` from the repo root after `npm install`; every command has its own `--help` with examples.
 - Commands: `login`, `logout`, `whoami`, `list` (`ls`), `show`, `add`, `edit`, `done`, `reopen`, `delete` (`rm`, needs `--yes`).
+- The project skill `.claude/skills/todo-cat-cli/` teaches agents the workflows and pitfalls (login, finding ids by title, jq, dates, deletes); update it when commands or conventions change.
 - `TODO_CAT_URL` picks the server (default `http://localhost:3000`); `XDG_CONFIG_HOME` (`%APPDATA%` on Windows) moves the config directory.
 
 ## Layout
