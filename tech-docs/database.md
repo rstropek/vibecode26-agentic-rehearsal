@@ -4,7 +4,7 @@
 
 - Drizzle ORM on SQLite through `@libsql/client`, stored in the local file named by `DATABASE_URL` (`file:./data/app.db`, gitignored via `data/.gitignore`).
 - `lib/db.ts` is the only module that opens the database; everything else imports its `db`, and its `server-only` import makes the build fail if client code imports it.
-- Tables live in `db/schema.ts` and migrations in `db/migrations/`, configured in `drizzle.config.ts`; there are no domain tables yet.
+- Tables live in `db/schema.ts` and migrations in `db/migrations/`, configured in `drizzle.config.ts`; so far the only tables are Better Auth's, generated into `db/auth-schema.ts` (see [auth.md](auth.md)).
 - Schema changes go through `npm run db:generate`, a review of the generated SQL, then `npm run db:migrate`; the commands are listed in AGENTS.md.
 
 ## Design decisions
@@ -22,11 +22,9 @@
 
 ## Gotchas
 
-- `db/migrations/.gitkeep` keeps the empty folder in git, because the runtime migrator throws on a missing folder (drizzle-kit itself creates it).
 - v1 writes one folder per migration (`migration.sql` plus `snapshot.json`) and no `meta/_journal.json`; the migrator rejects old journal-style folders until `drizzle-kit up` converts them.
-- While `db/schema.ts` has no tables, `db:generate` prints "No schema changes" and writes nothing.
 - `drizzle-kit generate --custom` writes a comment line without a trailing newline; SQL appended on that line is commented out and the migration fails with `SQLITE_UNKNOWN_0: not an error`.
-- In v1 the SQLite `drizzle()` takes `relations` (built with `defineRelations`) and no longer accepts `schema`; read the Relational Queries v2 docs before adding relations.
+- In v1 the SQLite `drizzle()` takes `relations` and no longer accepts `schema`; `lib/db.ts` passes Better Auth's `authRelations` part, and app relations built with `defineRelations` must come before it (`{ ...relations, ...authRelations }`).
 - `server-only` throws outside Next.js's react-server bundle, so `vitest.setup.ts` stubs it, and tests that touch the database need the `// @vitest-environment node` docblock.
 - `@next/env` is CommonJS, so plain-Node scripts such as `scripts/db-reset.mts` must use its default export.
 - Relative `file:` paths resolve against the working directory, so run database commands from the repo root.

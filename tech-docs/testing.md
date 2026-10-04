@@ -2,10 +2,9 @@
 
 ## Strategy
 
-- Vitest runs unit and integration tests in jsdom: pure functions, zod schemas, CLI logic, and synchronous React components; database tests switch to the node environment per file.
+- Vitest runs unit and integration tests in jsdom: pure functions, zod schemas, CLI logic, and synchronous React components; database and auth tests switch to the node environment per file.
 - Playwright runs end-to-end tests in Chromium against a real `next dev` server, and covers everything Vitest cannot render, notably async Server Components, routing, and Server Actions.
 - Prefer a Vitest test whenever the code can run outside Next.js, and add an e2e test only for flows a user actually goes through.
-- `app/page.test.tsx` and `e2e/smoke.spec.ts` are smoke tests that prove each harness works; replace them once real tests exist.
 
 ## Commands
 
@@ -41,7 +40,7 @@
 - One root `vitest.config.mts` covers all workspaces, matching the single root `biome.json` and lockfile.
 - Path aliases come from Vite's built-in `resolve.tsconfigPaths`, so the `vite-tsconfig-paths` plugin from the Next.js guide is unnecessary.
 - E2E runs against `next dev` instead of a production build because it starts faster and needs no build step.
-- The e2e server shares nothing with `npm run dev` or another checkout running at the same time: it asks the OS for a free port, builds into its own dist dir, gets `DATABASE_URL` pointing at a fresh temp file that `drizzle-kit migrate` sets up before `next dev` starts, and never reuses an existing server.
+- The e2e server shares nothing with `npm run dev` or another checkout running at the same time: it asks the OS for a free port, builds into its own dist dir, gets `DATABASE_URL` pointing at a fresh temp file that `drizzle-kit migrate` sets up before `next dev` starts, gets `BETTER_AUTH_URL` set to its own port, and never reuses an existing server.
 - Override these with `E2E_PORT`, `E2E_DIST_DIR` (default `.next-e2e`), and `E2E_DATABASE_URL`; see `playwright.config.ts`.
 
 ## Gotchas
@@ -49,9 +48,10 @@
 - Next.js 16 allows only one `next dev` per dist directory and exits if a second one starts, so the e2e server builds into `.next-e2e/` via the `NEXT_DIST_DIR` env var read in `next.config.ts`.
 - `next dev` adds the type paths of its dist directory to `tsconfig.json` and reformats the file, which is why the `.next-e2e` includes are committed there.
 - Playwright re-evaluates its config in each worker process, so the port and database path are stored in `E2E_*` env vars once and inherited.
-- Next.js loads `.env` without overriding variables already set, so the e2e `DATABASE_URL` wins over the one in `.env`.
+- Next.js loads `.env` without overriding variables already set, so the e2e `DATABASE_URL` and `BETTER_AUTH_URL` win over the ones in `.env`.
 - A non-default `E2E_DIST_DIR` makes `next dev` add that folder's type paths to `tsconfig.json`; don't commit that change.
 - `vitest.setup.ts` stubs `server-only`, which otherwise throws when a test imports a server module such as `lib/db.ts`.
+- Vitest does not load `.env`, so tests that import `lib/db.ts` or `lib/auth.ts` stub `DATABASE_URL` and the `BETTER_AUTH_*` variables before a dynamic import; see `lib/auth.test.ts`.
 - Testing Library's automatic cleanup needs Vitest globals, which are off, so `vitest.setup.ts` calls `cleanup()` after each test.
 - Vitest cannot render async Server Components; test them through Playwright.
 - Vitest 5 needs `@types/node` 22 or newer, so the root pins `@types/node` to the Node 24 runtime.
