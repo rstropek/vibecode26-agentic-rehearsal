@@ -61,6 +61,6 @@ test("an unknown code shows an error and the code form", async ({ page }) => {
   await expect(
     page
       .getByRole("alert")
-      .filter({ hasText: "Lissie doesn't know that code" }),
+      .filter({ hasText: "That code doesn't match a login" }),
   ).toBeVisible();
 });

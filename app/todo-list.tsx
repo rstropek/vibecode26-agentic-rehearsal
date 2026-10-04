@@ -74,7 +74,8 @@ export function TodoList({ todos, today }: { todos: Todo[]; today: string }) {
     {
       title: "Open",
       todos: shown.filter((todo) => !todo.done),
-      empty: "Nothing open. Add a todo, or tell Lissie what needs doing.",
+      empty:
+        "Nothing open. Suspicious. Add a todo, or tell Lissie what needs doing.",
     },
     {
       title: "Done",
@@ -141,39 +142,53 @@ export function TodoList({ todos, today }: { todos: Todo[]; today: string }) {
   );
 }
 
+// The add form's state before its first submission; any other state means an add just finished.
+const notAddedYet: TodoActionState = {};
+
 function AddTodoForm() {
   const [state, action, pending] = useActionState<TodoActionState, FormData>(
     addTodoAction,
-    {},
+    notAddedYet,
   );
+  const titleRef = useRef<HTMLInputElement>(null);
+  // The empty date input shows its format in muted text (app/globals.css); a failed add keeps the typed date.
+  const [hasDate, setHasDate] = useState(false);
+  useEffect(() => {
+    setHasDate(Boolean(state.dueDate));
+    // After each add, the title field is ready for the next todo.
+    if (state !== notAddedYet) titleRef.current?.focus();
+  }, [state]);
   return (
     <form action={action} className="flex flex-col gap-2">
-      <FormError>{state.error}</FormError>
-      <label htmlFor="new-todo-title" className="sr-only">
-        New todo
-      </label>
-      <input
-        id="new-todo-title"
-        name="title"
-        required
-        maxLength={200}
-        autoComplete="off"
-        placeholder="Add a todo"
-        defaultValue={state.title}
-        className={inputClassName}
-      />
-      <div className="flex items-center gap-2">
-        <label className="flex min-w-0 flex-1 items-center gap-3 text-sm font-medium text-muted">
-          Due
-          <input
-            type="date"
-            name="dueDate"
-            defaultValue={state.dueDate}
-            className={`${inputClassName} flex-1`}
-          />
+      <div className="flex gap-2">
+        <label htmlFor="new-todo-title" className="sr-only">
+          New todo
         </label>
+        <input
+          ref={titleRef}
+          id="new-todo-title"
+          name="title"
+          required
+          maxLength={200}
+          autoComplete="off"
+          placeholder="Add a todo"
+          defaultValue={state.title}
+          className={`${inputClassName} flex-1`}
+        />
         <Button disabled={pending}>Add</Button>
       </div>
+      <label className="flex items-center gap-3 text-sm font-medium text-muted">
+        Due
+        <input
+          type="date"
+          name="dueDate"
+          defaultValue={state.dueDate}
+          data-empty={hasDate ? undefined : ""}
+          onChange={(event) => setHasDate(event.target.value !== "")}
+          className={`${inputClassName} h-10 text-sm`}
+        />
+      </label>
+      <FormError>{state.error}</FormError>
     </form>
   );
 }
@@ -242,7 +257,8 @@ function TodoItem({
 
   return (
     <li className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-start gap-x-3 border-t border-line py-2.5 first:border-t-0">
-      <span className="relative mt-1 flex size-5">
+      {/* A second label for the checkbox, only to grow its hit area to 44px around the 20px box. */}
+      <label className="relative mt-1 flex size-5 cursor-pointer before:absolute before:-inset-3">
         <input
           ref={checkboxRef}
           id={id}
@@ -250,12 +266,12 @@ function TodoItem({
           checked={done}
           aria-describedby={due.text ? `${id}-due` : undefined}
           onChange={(event) => toggle(event.target.checked)}
-          className="peer size-5 cursor-pointer appearance-none rounded-[5px] border-2 border-muted bg-paper-raised transition-colors outline-none checked:border-amber checked:bg-amber hover:border-ink focus-visible:ring-3 focus-visible:ring-amber/60 checked:hover:border-amber"
+          className="peer relative z-1 size-5 cursor-pointer appearance-none rounded-[5px] border-2 border-muted bg-paper-raised transition-colors outline-none checked:border-amber-strong checked:bg-amber hover:border-ink focus-visible:ring-3 focus-visible:ring-amber-strong checked:hover:border-amber-strong"
         />
         <svg
           aria-hidden="true"
           viewBox="0 0 20 20"
-          className="pointer-events-none absolute inset-0 hidden text-on-amber peer-checked:block"
+          className="pointer-events-none absolute inset-0 z-1 hidden text-on-amber peer-checked:block"
         >
           <path
             d="M5.5 10.5 8.5 13.5 14.5 6.5"
@@ -266,19 +282,16 @@ function TodoItem({
             strokeLinejoin="round"
           />
         </svg>
-      </span>
+      </label>
       <div className="flex min-w-0 flex-col gap-0.5">
         <label htmlFor={id} className="cursor-pointer leading-snug">
           <span
-            className={`relative inline-block max-w-full break-words transition-colors ${done ? "text-muted" : "text-ink"}`}
+            onAnimationEnd={
+              scratching ? () => onSetDone(true, true) : undefined
+            }
+            className={`break-words transition-colors ${done ? `claws text-muted ${scratching || drawOnMount ? "claws-drawing" : ""}` : "text-ink"}`}
           >
             {todo.title}
-            {done ? (
-              <ClawMarks
-                drawing={scratching || drawOnMount}
-                onDrawn={scratching ? () => onSetDone(true, true) : undefined}
-              />
-            ) : null}
           </span>
         </label>
         {due.text ? (
@@ -292,8 +305,9 @@ function TodoItem({
         type="button"
         aria-label={`Delete ${todo.title}`}
         aria-expanded={confirming}
+        aria-controls={confirming ? `${id}-confirm` : undefined}
         onClick={() => setConfirming(true)}
-        className="-my-1 flex size-9 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-danger/10 hover:text-danger focus-visible:ring-3 focus-visible:ring-amber aria-expanded:bg-danger/10 aria-expanded:text-danger"
+        className="-my-1 flex size-9 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-danger/10 hover:text-danger focus-visible:ring-3 focus-visible:ring-amber-strong aria-expanded:bg-danger/10 aria-expanded:text-danger pointer-coarse:-my-2 pointer-coarse:size-11"
       >
         <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4.5">
           <path
@@ -308,6 +322,7 @@ function TodoItem({
       </button>
       {confirming ? (
         <fieldset
+          id={`${id}-confirm`}
           aria-label={`Delete ${todo.title}?`}
           onKeyDown={(event) => {
             if (event.key === "Escape") keep();
@@ -330,45 +345,5 @@ function TodoItem({
         </fieldset>
       ) : null}
     </li>
-  );
-}
-
-// A tapered claw stroke from (x1, y1) to (x2, y2), arching up a little and `width` thick in the middle.
-function claw(x1: number, y1: number, x2: number, y2: number, width: number) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2 - 1.5;
-  return `M${x1} ${y1}Q${mx} ${my - width} ${x2} ${y2}Q${mx} ${my + width} ${x1} ${y1}Z`;
-}
-
-const CLAWS = [
-  claw(4, 9.5, 95, 3, 4.2),
-  claw(2, 15, 97, 8.5, 4.8),
-  claw(7, 20.5, 92, 14.5, 3.8),
-];
-
-// Three claw strokes over the title's first line, in a box that stretches with the title (preserveAspectRatio="none").
-// The scratching animation is in app/globals.css.
-function ClawMarks({
-  drawing,
-  onDrawn,
-}: {
-  drawing: boolean;
-  onDrawn?: () => void;
-}) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 100 24"
-      preserveAspectRatio="none"
-      className={`claw-marks pointer-events-none absolute -inset-x-1 -top-[0.05em] h-[1.5em] w-[calc(100%+0.5rem)] text-amber ${drawing ? "claw-marks-drawing" : ""}`}
-    >
-      {CLAWS.map((d, index) => (
-        <path
-          key={d}
-          d={d}
-          onAnimationEnd={index === CLAWS.length - 1 ? onDrawn : undefined}
-        />
-      ))}
-    </svg>
   );
 }

@@ -17,6 +17,7 @@
 
 - `/signup` and `/login` are Server Components with small client forms that call the Server Actions in `app/auth-actions.ts` through `useActionState`.
 - The forms use the shared components in `components/ui/` and the theme tokens in `app/globals.css`; see [ui.md](ui.md).
+- The actions show the app's own sentence for each Better Auth error code they know (`messages` in `app/auth-actions.ts`) and Better Auth's message otherwise; e2e tests match the app's wording.
 
 ## Schema and migrations
 

@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <PageShell
       title="Oh. You're back."
-      lede="Sign in and Lissie will dig out your lists. Eventually."
+      lede="Sign in and Lissie will dig out your list. Eventually."
     >
       <LoginForm next={target} />
       <p className="text-muted">

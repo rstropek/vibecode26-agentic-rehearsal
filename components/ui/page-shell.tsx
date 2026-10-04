@@ -9,7 +9,7 @@ export function PageShell({
   children,
 }: {
   title: string;
-  lede: string;
+  lede: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -24,7 +24,7 @@ export function PageShell({
           </h1>
           <p className="max-w-md text-lg leading-relaxed text-muted">{lede}</p>
         </div>
-        <div className="flex w-full max-w-sm flex-col gap-8">{children}</div>
+        <div className="flex w-full max-w-md flex-col gap-8">{children}</div>
       </main>
     </div>
   );

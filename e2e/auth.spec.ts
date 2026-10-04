@@ -28,7 +28,9 @@ test("signs up, signs out, and signs back in", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
   // Next.js renders its own empty role="alert" route announcer, so match the form error by its text.
   await expect(
-    page.getByRole("alert").filter({ hasText: "Invalid email or password" }),
+    page
+      .getByRole("alert")
+      .filter({ hasText: "That email and password don't match" }),
   ).toBeVisible();
 
   await page.getByLabel("Password").fill(password);

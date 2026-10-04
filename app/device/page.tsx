@@ -1,4 +1,5 @@
 import { APIError } from "better-auth/api";
+import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,7 +8,9 @@ import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 import { PageShell } from "@/components/ui/page-shell";
 import { TextLink } from "@/components/ui/text-link";
+import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { withNext } from "@/lib/safe-next";
 import { getUserId } from "@/lib/session";
 import { decideDevice } from "./actions";
@@ -17,6 +20,11 @@ export const metadata: Metadata = { title: "Approve the CLI" };
 // Where `todo-cat login` sends its human: enter (or confirm) the code, then approve or deny it.
 // See tech-docs/cli.md for the whole device flow.
 
+// A command to type in the terminal, set apart from the sentence around it.
+function Command({ children }: { children: string }) {
+  return <span className="font-semibold text-ink">{children}</span>;
+}
+
 const results = {
   approved: {
     title: "Fine. The terminal is in.",
@@ -24,11 +32,21 @@ const results = {
   },
   denied: {
     title: "Denied. Good instinct.",
-    lede: "That terminal stays out. Run todo-cat login again if it was you after all.",
+    lede: (
+      <>
+        That terminal stays out. Run <Command>todo-cat login</Command> again if
+        it was you after all.
+      </>
+    ),
   },
   failed: {
     title: "That didn't work.",
-    lede: "The code may have expired or been used already. Run todo-cat login again for a new one.",
+    lede: (
+      <>
+        The code may have expired or been used already. Run{" "}
+        <Command>todo-cat login</Command> again for a new one.
+      </>
+    ),
   },
 };
 
@@ -54,7 +72,7 @@ async function claimCode(
     return null;
   } catch (error) {
     if (!(error instanceof APIError)) throw error;
-    return "Lissie doesn't know that code. Check your terminal; it may have expired.";
+    return "That code doesn't match a login. Check it against your terminal; it may have expired.";
   }
 }
 
@@ -65,6 +83,7 @@ function CodeForm({ code, error }: { code?: string; error?: string }) {
       <Field
         label="Code"
         name="user_code"
+        placeholder="ABCD-EFGH"
         autoComplete="off"
         autoCapitalize="characters"
         spellCheck={false}
@@ -82,7 +101,8 @@ export default async function DevicePage({
   const { user_code, result } = await searchParams;
   const userCode = typeof user_code === "string" ? user_code.trim() : "";
   const requestHeaders = await headers();
-  if (!(await getUserId(requestHeaders))) {
+  const userId = await getUserId(requestHeaders);
+  if (!userId) {
     redirect(
       withNext(
         "/login",
@@ -97,7 +117,7 @@ export default async function DevicePage({
     return (
       <PageShell {...results[result]}>
         <p>
-          <TextLink href="/">Back to your lists</TextLink>
+          <TextLink href="/">Back to your list</TextLink>
         </p>
       </PageShell>
     );
@@ -108,29 +128,52 @@ export default async function DevicePage({
     return (
       <PageShell
         title="Got a code?"
-        lede="Enter the code that todo-cat login printed in your terminal."
+        lede={
+          <>
+            Enter the code that <Command>todo-cat login</Command> printed in
+            your terminal.
+          </>
+        }
       >
         <CodeForm code={userCode} error={error ?? undefined} />
       </PageShell>
     );
   }
 
+  // Approving lets the terminal act as this account, so the page names it.
+  const me = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .get();
+
   return (
     <PageShell
       title="Let the terminal in?"
-      lede="The todo-cat CLI wants to read and change your lists as you."
+      lede={
+        <>
+          The todo-cat CLI wants to read and change your list as{" "}
+          <span className="font-semibold break-words text-ink">
+            {me?.email}
+          </span>
+          .
+        </>
+      }
     >
-      <div className="flex flex-col gap-3 rounded-md border border-line bg-paper-raised px-5 py-4">
+      <div className="flex flex-col gap-2">
         <p className="text-sm font-medium text-muted">
           Code from your terminal
         </p>
-        <p className="voice text-5xl tracking-[0.08em] text-ink tabular-nums">
+        <p className="text-5xl font-semibold tracking-[0.12em] text-ink tabular-nums">
           {displayCode(userCode)}
         </p>
       </div>
-      <p className="leading-relaxed text-muted">
-        Approve only if you just ran todo-cat login yourself and this is the
-        code it shows. Never approve a code someone sent you.
+      <p className="leading-relaxed text-ink">
+        Approve only if you just ran <Command>todo-cat login</Command> yourself
+        and this is the code it shows.{" "}
+        <strong className="font-semibold">
+          Never approve a code someone sent you.
+        </strong>
       </p>
       <form action={decideDevice} className="flex gap-3">
         <input type="hidden" name="userCode" value={userCode} />

@@ -25,18 +25,30 @@ export default async function Home() {
     .get();
   if (!me) redirect("/login");
   const todos = await listTodos(userId);
+  const openCount = todos.filter((todo) => !todo.done).length;
 
   return (
     <div className="flex min-h-dvh flex-col lg:grid lg:h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]">
       <div className="flex flex-col px-5 pb-6 sm:px-10 lg:min-h-0 lg:px-14 xl:px-20">
         <header className="flex w-full max-w-3xl items-center justify-between gap-4 py-5">
           <Wordmark />
-          <form action={signOut} className="flex items-center gap-4">
-            <p className="hidden text-sm text-muted sm:block">{me.name}</p>
-            <Button variant="quiet" size="sm">
-              Sign out
-            </Button>
-          </form>
+          <div className="flex items-center gap-2">
+            {/* Below lg the list sits under the chat, out of sight; this jumps to it. */}
+            <a
+              href="#todo-list-heading"
+              className="flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold text-ink outline-none hover:bg-line/60 focus-visible:ring-3 focus-visible:ring-amber-strong pointer-coarse:h-11 lg:hidden"
+            >
+              Your list
+              <span className="font-normal text-muted tabular-nums">
+                {openCount} open
+              </span>
+            </a>
+            <form action={signOut}>
+              <Button variant="quiet" size="sm">
+                Sign out
+              </Button>
+            </form>
+          </div>
         </header>
         <main className="flex h-[85dvh] w-full max-w-3xl flex-col gap-5 pt-6 sm:pt-10 lg:h-auto lg:min-h-0 lg:flex-1">
           <div className="flex flex-col gap-3">

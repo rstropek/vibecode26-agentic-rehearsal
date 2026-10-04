@@ -17,7 +17,7 @@ export default async function SignupPage({
   if (await getUserId(await headers())) redirect(target);
   return (
     <PageShell
-      title="Fine. I'll keep your lists."
+      title="Fine. I'll keep your list."
       lede="Lissie has opinions about your to-dos. Create an account and hear them."
     >
       <SignupForm next={target} />
