@@ -27,7 +27,8 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `next dev --port ${process.env.E2E_PORT}`,
+    // Migrates the fresh e2e database before the server starts; DATABASE_URL below wins over .env.
+    command: `drizzle-kit migrate && next dev --port ${process.env.E2E_PORT}`,
     url: baseURL,
     env: {
       NEXT_DIST_DIR: process.env.E2E_DIST_DIR,

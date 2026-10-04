@@ -11,7 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # todo-cat
 
 A to-do list web app whose lists are kept by Lissie, a cat with attitude (an AI agent, coming later).
-Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI), both still empty.
+Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite, plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI), both still empty.
 
 ## Commands
 
@@ -20,6 +20,9 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 - `npm run build` creates a production build.
 - `npm test` runs the Vitest unit and integration tests once.
 - `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
+- `npm run db:generate` turns schema changes in `db/schema.ts` into a migration in `db/migrations/`.
+- `npm run db:migrate` applies pending migrations to the database in `DATABASE_URL`.
+- `npm run db:reset` deletes the local database file and migrates a fresh one.
 - `npm run lint` runs `biome check` (lint, format, import order).
 - `npm run typecheck` generates Next.js route types and type-checks all workspaces.
 - `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) and prints only what failed.
@@ -32,8 +35,15 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 
 ## Newer than your training data
 
-- Next.js 16, React 19.2, Tailwind 4 and Biome 2 have changed since your training data, so verify APIs against current docs instead of memory.
-- Next.js docs for the installed version are in `node_modules/next/dist/docs/`.
+- Next.js 16, React 19.2, Tailwind 4, Biome 2 and Drizzle v1 (RC) have changed since your training data, so verify APIs against current docs instead of memory.
+
+## Researching docs
+
+- Next.js: read the docs for the installed version in `node_modules/next/dist/docs/`, not the website, which may describe another version.
+- Vendors with an `llms.txt` index: start there and follow its links, e.g. https://orm.drizzle.team/llms.txt for Drizzle (use the `docs/sqlite/` pages, which target the v1 RC installed here).
+- Libraries with an installed skill (`.claude/skills/`): use the skill, e.g. `mastra`, `copilotkit`, and `impeccable` or `frontend-design` for UI work.
+- Any other library: use the ctx7 CLI described in the `find-docs` skill (`npx ctx7@latest library <name> "<question>"`, then `docs <id> "<question>"`).
+- When docs and installed code disagree, the type definitions in `node_modules/` win.
 
 ## Tech docs
 
@@ -47,6 +57,7 @@ Next.js 16 App Router app at the repo root, plus npm workspaces `contract/` (sha
 Index:
 
 - [tech-docs/workspaces.md](tech-docs/workspaces.md): workspace layout and why it exists before its content does.
+- [tech-docs/database.md](tech-docs/database.md): Drizzle on SQLite, the single db module, migrations, and their gotchas.
 - [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 
 ## Keeping this map current
