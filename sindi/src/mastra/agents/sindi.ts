@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { sindiModel } from "./sindi-model";
 
 // Sindi, the dog next door; see tech-docs/a2a.md. Mastra publishes these instructions as the description on her A2A
 // agent card, so they must read well to whoever discovers her.
@@ -20,6 +21,5 @@ export const sindi = new Agent({
   id: "sindi",
   name: "Sindi",
   instructions,
-  // The same OpenRouter model as Lissie, from the web app's .env (see the dev script in package.json).
-  model: `openrouter/${process.env.OPENROUTER_MODEL || "z-ai/glm-5.3-flash"}`,
+  model: sindiModel,
 });

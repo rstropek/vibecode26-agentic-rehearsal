@@ -7,8 +7,11 @@ import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 // Lissie's subagent Sindi against a stub A2A server that answers like Sindi's Mastra app (sindi/), and a scripted model:
-// no Sindi, no OpenRouter. "Ask Sindi to fetch the ball" makes Lissie call agent-sindi; a tool result makes her repeat
-// it, so the test sees what reached the model.
+// no Sindi, no OpenRouter. "Ask Sindi to fetch the ball" makes Lissie call agent-sindi with the errand and, to test
+// that only the errand leaves, instructions about the user's list; a tool result makes her repeat it, so the test sees
+// what reached the model.
+
+const ERRAND = "Fetch the ball.";
 
 type ModelCall = {
   tools: { name: string; description?: string }[];
@@ -52,7 +55,10 @@ vi.mock("@/lib/lissie-model", async () => {
                   type: "tool-call" as const,
                   toolCallId: `call-${crypto.randomUUID()}`,
                   toolName: "agent-sindi",
-                  input: JSON.stringify({ prompt: "Fetch the ball." }),
+                  input: JSON.stringify({
+                    prompt: ERRAND,
+                    instructions: "The user still has to call the notary.",
+                  }),
                 },
               ]
             : [
@@ -224,12 +230,33 @@ test("delegates an errand to Sindi over A2A and hears her reply", async () => {
   };
   expect(call.method).toBe("message/stream");
   expect(call.params.message.role).toBe("user");
-  expect(call.params.message.parts[0].text).toContain("Fetch the ball.");
+  expect(call.params.message.parts[0].text).toContain(ERRAND);
   expect(modelCalls[1].toolResult).toEqual({
     type: "text",
     value: SINDI_REPLY,
   });
   expect(reply).toContain(SINDI_REPLY);
+});
+
+test("sends Sindi the errand and nothing else", async () => {
+  const lissie = await lissieWithSindiAt(urlOf(stub));
+  await ask(lissie, "Put 'call the notary about the will' on my list");
+  stubRequests.length = 0;
+
+  await ask(lissie, "Ask Sindi to fetch the ball");
+
+  const call = stubRequests.find(({ method }) => method === "POST")?.body as {
+    params: { message: { parts: unknown[] } };
+  };
+  // A2AAgent prefixes each message with its role. Without the boundary, "Instructions:" and "Context:" blocks with
+  // the model's instructions and this conversation would come first.
+  expect(call.params.message.parts).toEqual([
+    { kind: "text", text: `user: ${ERRAND}` },
+  ]);
+  const sent = JSON.stringify(stubRequests);
+  for (const leak of ["notary", "Meow", "Ask Sindi", "user-alice", "lissie-"]) {
+    expect(sent).not.toContain(leak);
+  }
 });
 
 test("tells the model when Sindi is unreachable", async () => {

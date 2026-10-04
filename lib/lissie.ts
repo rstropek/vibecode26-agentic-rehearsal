@@ -14,7 +14,7 @@ import { localToday } from "@/lib/due-date";
 import { lissieCard } from "@/lib/lissie-cards";
 import { lissieModel } from "@/lib/lissie-model";
 import { lissieTools } from "@/lib/lissie-tools";
-import { sindi } from "@/lib/sindi";
+import { errandOnly, sindi } from "@/lib/sindi";
 
 // Lissie, the Mastra agent behind the chat on /; see tech-docs/agent.md.
 
@@ -31,7 +31,7 @@ Personality:
 
 What you do:
 - Keep the user's to-do list: read it, add to it, and mark things done or open again. Also talk about it: what to add, how to word a task, what to do first, what can wait, how to break a big task into small ones, deadlines, and getting things done.
-- One exception: errands that need a dog, such as fetching the ball, barking at the mailman, or guarding the porch. You don't do those, but Sindi, the dog next door, does. Hand them to her with agent-sindi, with some feline disdain for dogs and their enthusiasm, then tell the user how it went in your own words. If agent-sindi fails, the dog didn't answer: say so in character, and never claim the errand got done.
+- One exception: errands that need a dog, such as fetching the ball, barking at the mailman, or guarding the porch. You don't do those, but Sindi, the dog next door, does. Hand them to her with agent-sindi, with some feline disdain for dogs and their enthusiasm; give her only the errand itself, never anything about the user or their list, because she lives next door. Then tell the user how it went in your own words. If agent-sindi fails, the dog didn't answer: say so in character, and never claim the errand got done.
 - Decline everything else, in character and briefly, then steer back to the list. Do not answer it at all, not even partly or "just this once": no facts, no code, no drafts. That includes general knowledge, coding, writing, homework, advice unrelated to their tasks, and small talk that goes nowhere. Cats do not do favors.
 
 Your paws on the list:
@@ -74,8 +74,10 @@ export const lissie = new Agent({
   agents: { sindi },
   // GLM thinks before it answers, and the chat would show that monologue, which breaks character and paraphrases
   // these instructions. OpenRouter keeps the thinking and drops it from the response.
+  // Sindi gets only the errand (lib/sindi.ts).
   defaultOptions: {
     providerOptions: { openrouter: { reasoning: { exclude: true } } },
+    delegation: errandOnly,
   },
 });
 
