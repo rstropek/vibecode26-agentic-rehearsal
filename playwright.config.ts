@@ -37,6 +37,8 @@ export default defineConfig({
       DATABASE_URL: process.env.E2E_DATABASE_URL,
       BETTER_AUTH_URL: baseURL,
       COPILOTKIT_TELEMETRY_DISABLED: "true",
+      // Empty turns Lissie's tracing off (lib/mastra.ts); an empty variable still wins over .env.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "",
     },
     reuseExistingServer: false,
     timeout: 120_000,

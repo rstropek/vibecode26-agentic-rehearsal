@@ -19,6 +19,7 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 - `lib/lissie-cards.ts`: the progress card's A2UI tree, `lissieCard`, which turns a tool result into its card, and the `LissieCards` middleware that paints cards live.
 - `lib/lissie-tool-schemas.ts`: tool names, input and output schemas, and the A2UI catalog id, free of server imports so the browser can use them.
 - `lib/lissie-model.ts`: the model string, its own module so tests can mock it.
+- `lib/mastra.ts`: the Mastra instance Lissie is registered in for tracing, and `lissieAgent`, the registered agent the runtime serves; see [observability.md](observability.md).
 - `lib/copilot-runtime.ts`: the runtime, the route guard `authorizeRoute`, and `LissieRunner`.
 - `app/api/copilotkit/[[...slug]]/route.ts`: resolves the session and hands the request to the runtime.
 - `app/lissie-chat.tsx`: the client chat; `app/page.tsx` passes it the thread id and renders the list next to it.

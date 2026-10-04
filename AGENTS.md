@@ -15,6 +15,7 @@ Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better
 All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that.
 The app is also a remote MCP server at `/api/mcp` (`app/api/mcp/`, `lib/mcp-server.ts`) with the same tools as the stdio one (both from `contract/src/tools.ts`), protected by OAuth with Better Auth as the authorization server and its consent page at `/consent`.
 Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos and show their progress as an A2UI card in the chat (built in `lib/lissie-cards.ts`, catalog in `app/lissie-catalog.tsx`).
+Lissie's runs are traced through the Mastra instance in `lib/mastra.ts` to the OTLP endpoint in `OTEL_EXPORTER_OTLP_ENDPOINT`, in development the Aspire dashboard.
 Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
 Not built yet: editing a todo's title or due date in the web app.
 `README.md` is still the create-next-app boilerplate; this file, `tech-docs/`, and `PRODUCT.md` (users, purpose, and Lissie's voice, for design work) are the project docs.
@@ -35,6 +36,7 @@ Not built yet: editing a todo's title or due date in the web app.
 - `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
 - `npm run test:e2e:model` runs the e2e tests that call the real model (needs `OPENROUTER_API_KEY`); they are not part of QA or CI.
 - `npm run test:e2e:model:todos` runs only the model e2e where Lissie adds "buy milk" and the list next to the chat shows it.
+- `npm run dashboard:start` starts the Aspire dashboard in Docker (UI on http://localhost:18888, OTLP on 4317 and 4318) for Lissie's traces; `npm run dashboard:stop` stops it.
 - `npm run db:generate` turns schema changes in `db/schema.ts` into a migration in `db/migrations/`.
 - `npm run db:migrate` applies pending migrations to the database in `DATABASE_URL`.
 - `npm run db:reset` deletes the local database file and migrates a fresh one.
@@ -82,6 +84,7 @@ Index:
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
 - [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, her tools and how they get the user id, the A2UI progress card, the CopilotKit runtime and its route authorization, history replay, and the chat UI with the list next to it.
+- [tech-docs/observability.md](tech-docs/observability.md): tracing Lissie's runs over OTLP, the Aspire dashboard scripts, what a trace holds, and why tracing is off in tests.
 - [tech-docs/ui.md](tech-docs/ui.md): the "Scratched off" design direction, where tokens and shared components live, the list's interaction details, the progress card, and the CopilotKit styling gotchas.
 - [tech-docs/mcp.md](tech-docs/mcp.md): both MCP servers and how they differ, the shared tool definitions, OAuth with CIMD clients, discovery, login and consent, connecting Claude Code and the MCPJam CLI, tests, and gotchas.
 - [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its commands shared with the stdio MCP server and how to register that in Claude Code, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
