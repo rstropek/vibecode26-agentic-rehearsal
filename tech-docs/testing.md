@@ -15,7 +15,7 @@
 
 ## QA script
 
-- `scripts/qa.sh` (`npm run qa`) is the single gate for agents, humans, and CI: Biome, typecheck, production build (app and CLI), Vitest, Playwright, in that order.
+- `scripts/qa.sh` (`npm run qa`) is the single gate for agents, humans, and CI: Biome, typecheck, production build (app and CLI), Vitest, Playwright, then Sindi's typecheck and Vitest (`sindi/`, see [a2a.md](a2a.md)), in that order.
 - Every section runs even after an earlier one fails, so one run reports all problems at once.
 - Passing sections print one PASS line; failing sections print their full output, then a summary lists every section and the exit code is 1.
 - The complete output of all sections goes to `.qa/qa.log` (gitignored); set `QA_LOG` to write it elsewhere.

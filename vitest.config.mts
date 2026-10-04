@@ -9,8 +9,14 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["**/*.test.{ts,tsx}"],
-    // .claude/worktrees/ holds other checkouts of this repo (gitignored, but Vitest does not read .gitignore).
-    exclude: ["**/node_modules/**", "e2e/**", ".claude/worktrees/**"],
+    // .claude/worktrees/ holds other checkouts of this repo (gitignored, but Vitest does not read .gitignore);
+    // sindi/ is its own app with its own Vitest run.
+    exclude: [
+      "**/node_modules/**",
+      "e2e/**",
+      ".claude/worktrees/**",
+      "sindi/**",
+    ],
     setupFiles: ["./vitest.setup.ts"],
     // Tests never export traces, whatever the shell sets (lib/mastra.ts).
     env: { OTEL_EXPORTER_OTLP_ENDPOINT: "" },

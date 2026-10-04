@@ -16,6 +16,7 @@ All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`a
 The app is also a remote MCP server at `/api/mcp` (`app/api/mcp/`, `lib/mcp-server.ts`) with the same tools as the stdio one (both from `contract/src/tools.ts`), protected by OAuth with Better Auth as the authorization server and its consent page at `/consent`.
 Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos and show their progress as an A2UI card in the chat (built in `lib/lissie-cards.ts`, catalog in `app/lissie-catalog.tsx`).
 Lissie's runs are traced through the Mastra instance in `lib/mastra.ts` to the OTLP endpoint in `OTEL_EXPORTER_OTLP_ENDPOINT`, in development the Aspire dashboard.
+Dog errands Lissie hands to Sindi (`sindi/`), a separate minimal Mastra app with one agent, through an A2A subagent (`lib/sindi.ts`).
 Next to the chat, the list (`app/todo-list.tsx`) adds, checks off, reopens, and deletes todos through Server Actions (`app/todo-actions.ts`) and refreshes when Lissie changes something.
 Not built yet: editing a todo's title or due date in the web app.
 `README.md` is still the create-next-app boilerplate; this file, `tech-docs/`, and `PRODUCT.md` (users, purpose, and Lissie's voice, for design work) are the project docs.
@@ -23,6 +24,7 @@ Not built yet: editing a todo's title or due date in the web app.
 ## First-time setup
 
 - `cp .env.example .env` and set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `OPENROUTER_API_KEY`; nothing that opens the database starts without `DATABASE_URL`.
+- `npm install --prefix sindi` installs Sindi's app, which is its own package, not a workspace.
 - `npm run db:migrate` creates `data/app.db`; `npm run db:seed` adds the demo user.
 - `npx playwright install chromium` once per machine before the e2e tests or `npm run qa`.
 
@@ -30,6 +32,7 @@ Not built yet: editing a todo's title or due date in the web app.
 
 - `npm install` installs the root app and both workspaces.
 - `npm run dev` starts the dev server on http://localhost:3000.
+- `npm run dev --prefix sindi` starts Sindi with `mastra dev` on http://localhost:4111 (Studio, her agent card, and her A2A endpoint).
 - `npm run build` creates a production build of the app and bundles the CLI into `cli/dist/`.
 - `npx todo-cat --help` runs the CLI against `TODO_CAT_URL` (default http://localhost:3000); `npm run build -w cli` rebuilds it.
 - `npm test` runs the Vitest unit and integration tests once.
@@ -44,7 +47,7 @@ Not built yet: editing a todo's title or due date in the web app.
 - `npm run auth:generate` regenerates Better Auth's Drizzle tables in `db/auth-schema.ts` after auth plugins or options change.
 - `npm run lint` runs `biome check` (lint, format, import order).
 - `npm run typecheck` generates Next.js route types and type-checks the app and both workspaces in one root `tsc`.
-- `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) across the app and both workspaces, printing a PASS line per passing check and the full output of failing ones.
+- `npm run qa` runs every check (Biome, typecheck, build, Vitest, Playwright) across the app and both workspaces, plus Sindi's typecheck and Vitest, printing a PASS line per passing check and the full output of failing ones.
 - `npx biome check --write` applies Biome's safe fixes and formatting.
 
 ## Definition of done
@@ -85,6 +88,7 @@ Index:
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
 - [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, her tools and how they get the user id, the A2UI progress card, the CopilotKit runtime and its route authorization, history replay, and the chat UI with the list next to it.
 - [tech-docs/observability.md](tech-docs/observability.md): tracing Lissie's runs over OTLP, the Aspire dashboard scripts, what a trace holds, and why tracing is off in tests.
+- [tech-docs/a2a.md](tech-docs/a2a.md): Sindi's Mastra app, starting her, calling her with curl, Lissie's A2A subagent for her, and its gotchas.
 - [tech-docs/ui.md](tech-docs/ui.md): the "Scratched off" design direction, where tokens and shared components live, the list's interaction details, the progress card, and the CopilotKit styling gotchas.
 - [tech-docs/mcp.md](tech-docs/mcp.md): both MCP servers and how they differ, the shared tool definitions, OAuth with CIMD clients, discovery, login and consent, connecting Claude Code and the MCPJam CLI, tests, and gotchas.
 - [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its commands shared with the stdio MCP server and how to register that in Claude Code, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
