@@ -45,6 +45,9 @@ section typecheck npm run --silent typecheck
 section build npm run --silent build
 section vitest npm test --silent
 section playwright npm run --silent test:e2e
+# Sindi (sindi/) is a separate package with its own dependencies: npm ci --prefix sindi. Never starts her.
+section sindi-typecheck npm --prefix sindi run --silent typecheck
+section sindi-vitest npm --prefix sindi test --silent
 
 echo
 echo "== summary"

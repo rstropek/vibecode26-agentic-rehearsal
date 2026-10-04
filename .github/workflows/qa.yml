@@ -23,8 +23,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            sindi/package-lock.json
 
       - run: npm ci
+
+      # Sindi (sindi/) is her own package, not a workspace, with her own lockfile.
+      - run: npm ci --prefix sindi
 
       - name: Read Playwright version
         id: playwright

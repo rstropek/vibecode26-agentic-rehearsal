@@ -501,6 +501,7 @@ describe("the progress card", () => {
   test("the model gets Lissie's tools and nothing that generates UI", () => {
     expect(tools?.toSorted()).toEqual([
       "addTodo",
+      "agent-sindi",
       "listTodos",
       "setTodoDone",
       "showProgress",

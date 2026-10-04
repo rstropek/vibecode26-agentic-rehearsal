@@ -1,0 +1,30 @@
+{
+  "name": "sindi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "mastra dev --env ../.env",
+    "build": "mastra build",
+    "start": "mastra start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mastra/core": "1.74.0",
+    "@mastra/libsql": "1.25.0",
+    "@mastra/observability": "1.18.3",
+    "@mastra/otel-exporter": "1.4.4",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.218.0"
+  },
+  "devDependencies": {
+    "@mastra/deployer": "1.74.0",
+    "@types/node": "^24.19.1",
+    "mastra": "1.32.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,6 +1,7 @@
 # Observability
 
 Lissie's runs are traced with Mastra's observability and exported over OTLP/HTTP protobuf, in development to a local Aspire dashboard.
+Sindi (`sindi/`) exports to the same endpoint as service `sindi`; see [a2a.md](a2a.md).
 
 ```
  Agent `lissie` ──registered in──▶ Mastra instance (lib/mastra.ts) ──▶ Observability ──▶ OtelExporter ──▶ POST <endpoint>/v1/traces

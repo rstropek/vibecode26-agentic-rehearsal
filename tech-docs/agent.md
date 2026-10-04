@@ -20,6 +20,7 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 - `lib/lissie-tool-schemas.ts`: tool names, input and output schemas, and the A2UI catalog id, free of server imports so the browser can use them.
 - `lib/lissie-model.ts`: the model string, its own module so tests can mock it.
 - `lib/mastra.ts`: the Mastra instance Lissie is registered in for tracing, and `lissieAgent`, the registered agent the runtime serves; see [observability.md](observability.md).
+- `lib/sindi.ts`: Sindi, the dog next door, as an A2A subagent; see [a2a.md](a2a.md).
 - `lib/copilot-runtime.ts`: the runtime, the route guard `authorizeRoute`, and `LissieRunner`.
 - `app/api/copilotkit/[[...slug]]/route.ts`: resolves the session and hands the request to the runtime.
 - `app/lissie-chat.tsx`: the client chat; `app/page.tsx` passes it the thread id and renders the list next to it.
@@ -48,6 +49,7 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 - `setTodoDone` on an unknown or foreign id returns the contract's error body (`todo-not-found`), which the model reads and answers in character.
 - The instructions end with today's date on the server, so the model can turn "Friday" into a due date; the server's time zone stands in for the user's.
 - Persona rules in the instructions: Lissie comments in character on every todo she adds or marks done, and feeding the cat gets the strongest opinions.
+- Her one subagent is Sindi (`agents: { sindi }`), offered to the model as the tool `agent-sindi`; dog errands are the only exception to "only your to-do list", and a failed delegation means the dog didn't answer; see [a2a.md](a2a.md).
 
 ## The progress card (A2UI)
 
@@ -95,6 +97,7 @@ Lissie is one Mastra agent, served to the chat on `/` by an embedded CopilotKit 
 
 - `lib/lissie-tools.test.ts` runs the tool executors on a temp database with the request context the runtime builds: per-user isolation, a user id in the input ignored, not found for another user's todo, no tool runs without a user, and `showProgress` counting only the user's rows.
 - `lib/lissie-cards.test.ts` checks the progress card's operations against A2UI's message schema and the catalog, with no numbers in the tree and the result's numbers in the data model, and runs `LissieCards` over parallel tool calls, where each card must follow its result under its own call's id.
+- `lib/sindi.test.ts` runs Lissie's delegation to Sindi against a stub A2A server; see [a2a.md](a2a.md).
 - `app/lissie-catalog.test.tsx` renders `ProgressBar` alone and through A2UI's own provider with the catalog, which proves its bound props resolve.
 - `app/lissie-tool-calls.test.tsx` checks `showProgress`'s line: running, nothing once counted, and failed.
 - `app/api/copilotkit/[[...slug]]/route.test.ts` runs the real route on a temp database with a scripted Mastra mock model (`MastraLanguageModelV2Mock`, which answers "Add <title>" with an `addTodo` call and "How am I doing?" with `showProgress` and `listTodos` in one step): 401 on every runtime route, 404 on routes the chat does not use, no run, connect, stop, or thread read on another user's thread, memory scoped to the user, no session token in the model call's headers, replay after the in-memory store is cleared (a restart), the tool acting for the session's user, replayed tool calls matching the live ids, no duplicate messages when replayed history is sent back, no UI-generating tool offered to the model even when a request asks for one, and the progress surface live and replayed under `showProgress`'s own call id.

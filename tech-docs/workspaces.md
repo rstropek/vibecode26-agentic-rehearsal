@@ -5,6 +5,7 @@
 - The repo root is the Next.js app itself (`app/`, `next.config.ts`), not a workspace member.
 - `contract/` (package `@todo-cat/contract`) holds the zod schemas that define the data exchanged between the web app and its clients; see [architecture.md](architecture.md).
 - `cli/` (package `todo-cat-cli`) holds the `todo-cat` CLI, bundled by esbuild into `cli/dist/`; see [cli.md](cli.md).
+- `sindi/` is deliberately not a workspace: Sindi's Mastra app has its own lockfile and `npm install --prefix sindi`, and the web app talks to her only over A2A; see [a2a.md](a2a.md).
 
 ## Why workspaces
 
