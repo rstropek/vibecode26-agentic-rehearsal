@@ -1,6 +1,6 @@
 ---
 name: todo-cat-cli
-description: Manage a person's to-do list with the `todo-cat` CLI (the todo-cat app's REST client) - add, find, edit, complete, reopen, and delete todos, and answer questions about the list such as what is overdue, due this week, added last week, or finished recently. Use this whenever the user talks about their todos, tasks, to-do list, reminders, or "my list" in the todo-cat project, even if they don't mention the CLI, and whenever you need to read or change todo data on a running todo-cat server.
+description: Manage a person's to-do list with the `todo-cat` CLI (the todo-cat app's REST client) or its MCP tools - add, find, edit, complete, reopen, and delete todos, and answer questions about the list such as what is overdue, due this week, added last week, or finished recently. Use this whenever the user talks about their todos, tasks, to-do list, reminders, or "my list" in the todo-cat project, even if they don't mention the CLI, and whenever you need to read or change todo data on a running todo-cat server.
 ---
 
 # Managing a to-do list with the todo-cat CLI
@@ -10,6 +10,19 @@ This skill covers workflows and pitfalls; `todo-cat --help` and `todo-cat <comma
 
 From the repo root run it as `npx todo-cat`; elsewhere it may be installed as `todo-cat`.
 `TODO_CAT_URL` picks the server (default `http://localhost:3000`).
+
+## CLI or MCP tools
+
+`todo-cat mcp --stdio` serves the same commands as MCP tools with the same names (`whoami`, `list`, `show`, `add`, `edit`, `done`, `reopen`, `delete`).
+If those tools are available to you (in Claude Code they appear as `mcp__todo-cat__list` and so on), use them instead of the shell; everything in this skill applies to both, with these differences:
+
+- Arguments are JSON with the `--json` field names: `add` takes `{"title": "...", "dueDate": "yyyy-mm-dd"}`, `edit` takes `{"id": "...", "title": "...", "dueDate": null}` (null removes the due date), and `list` takes `{"status": "open", "search": "vet"}`.
+- A result is the same JSON value `--json` prints, so filter it yourself instead of with jq.
+- There is no `--yes`: `delete` is annotated as destructive, and your host may ask the person to confirm. That does not loosen the rules below; delete only what they asked to delete.
+- A failure comes back as a tool error with `{"error":{"code":"…","message":"…"}}` instead of an exit code; the codes are the same.
+- `login` and `logout` are not tools. A tool error with code `unauthorized` means the person has to run `npx todo-cat login` in a terminal (see below); the server picks up the new login without a restart.
+
+If the person wants the tools and does not have them yet, they can register the server in Claude Code from the repo root with `claude mcp add todo-cat -- npx todo-cat mcp --stdio`; registering it is their call, like logging in.
 
 ## Before anything else: are you logged in?
 
@@ -41,7 +54,7 @@ todo-cat list --search vet --json | jq -r '.[] | [.id, .done, .dueDate, .title] 
 - No match: `--search` is a plain case-insensitive substring, so try a shorter or different word, or scan the full list, before telling the user it is not there.
 
 Never invent, shorten, or reuse an id from memory; ids come from `list` output in this session.
-Exit code 4 (`todo-not-found`) means the id does not exist for this user, which usually means the id was wrong, not that you should retry with a guess.
+Exit code 4 (`todo-not-found`) means the id does not exist for this user, which usually means the id was wrong, not that you should retry with a guess; an id that is not a UUID at all fails earlier with exit code 5 (`validation-failed`).
 
 ## Answer questions with `--json` and jq
 

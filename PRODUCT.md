@@ -12,7 +12,7 @@ web
 
 - Busy people with a cat and too many errands, keeping a personal to-do list.
 - They add todos, check them off, and ask Lissie about the list, on desktop and on the phone.
-- Second audience: AI agents working for one of those people, through the `todo-cat` CLI today and an MCP server later. They need stable, scriptable output, not personality.
+- Second audience: AI agents working for one of those people, through the `todo-cat` CLI or its MCP server (`todo-cat mcp --stdio`). They need stable, scriptable output, not personality.
 
 ## Product Purpose
 
@@ -24,7 +24,7 @@ web
 ## Positioning
 
 - A to-do list with a keeper who has a personality: Lissie is dry, superior, and secretly caring, and she actually changes the list instead of only talking about it.
-- The same list is reachable three ways, all on one todo service: the web app (list plus chat), the REST API and CLI, and later MCP.
+- The same list is reachable three ways, all on one todo service: the web app (list plus chat), the REST API, and the CLI with its MCP server.
 
 ## Operating Context
 
@@ -37,7 +37,7 @@ web
 
 - A todo has a title, an optional due date (a calendar day), and is open or done; each user sees only their own todos.
 - Built: add, check off, reopen, and delete in the list; Lissie lists, adds, and completes or reopens todos; the CLI also edits and deletes.
-- Not built yet: editing a todo's title or due date in the web app, Lissie renaming, rescheduling, or deleting, and the MCP server.
+- Not built yet: editing a todo's title or due date in the web app, Lissie renaming, rescheduling, or deleting, and MCP over HTTP.
 - Deliberately absent: sharing lists between users, pagination, soft delete.
 - Lissie only talks about the list and getting things done; she declines everything else in character.
 - "Today" is the server's date, for both the list and Lissie.
