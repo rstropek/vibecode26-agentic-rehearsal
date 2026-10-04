@@ -13,7 +13,7 @@ const AGENT_ID = "lissie";
 // when it is the signed-in user's own thread, so passing it from the server is safe and restores the history.
 export function LissieChat({ threadId }: { threadId: string }) {
   return (
-    <div className="lissie-chat flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-line bg-paper-raised">
+    <div className="lissie-chat -mx-1 flex min-h-0 flex-1 flex-col">
       <CopilotKit
         runtimeUrl="/api/copilotkit"
         useSingleEndpoint={false}

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
+// The width and optical size axes carry Lissie's condensed voice (the `voice` utility in globals.css).
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
+  axes: ["wdth", "opsz"],
 });
 
 export const metadata: Metadata = {

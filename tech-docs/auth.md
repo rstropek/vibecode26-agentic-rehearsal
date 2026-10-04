@@ -16,8 +16,7 @@
 ## Pages and forms
 
 - `/signup` and `/login` are Server Components with small client forms that call the Server Actions in `app/auth-actions.ts` through `useActionState`.
-- Shared form styling lives in `components/ui/` (`Field`, `Button`, `FormError`, `TextLink`, `PageShell`); pages compose these instead of repeating class strings.
-- Colors are theme tokens in `app/globals.css` (`ink`, `paper`, `amber`, ...) with a dark-mode set, so components use `text-ink` rather than hex values.
+- The forms use the shared components in `components/ui/` and the theme tokens in `app/globals.css`; see [ui.md](ui.md).
 
 ## Schema and migrations
 
