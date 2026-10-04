@@ -12,8 +12,9 @@ around it. Hexagonal (ports and adapters), without the ceremony.
  CLI and stdio MCP ──▶ REST /api/todos     contract/ (@todo-cat/contract, zod)
 ```
 
-Built so far: the service, the REST adapter, and the CLI. Pages show no todos yet, and
-agent tools and MCP are planned; the rules below apply to them when they arrive.
+Built so far: the service, the REST adapter, the CLI, and Lissie's chat without tools
+([agent.md](agent.md)). Pages show no todos yet, and agent tools and MCP are planned; the
+rules below apply to them when they arrive.
 
 ## The todo service
 

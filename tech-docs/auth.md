@@ -9,7 +9,7 @@
 ## The one session reader
 
 - `getUserId(headers)` in `lib/session.ts` maps a request's headers to the signed-in user's id, from the session cookie or a bearer token, or returns null.
-- Every adapter calls it; nothing else calls `auth.api.getSession`, so changing how sessions are resolved touches one function.
+- Every adapter calls it, including the CopilotKit route (`/api/copilotkit`, see [agent.md](agent.md)); nothing else calls `auth.api.getSession`, so changing how sessions are resolved touches one function.
 - Pages pass `await headers()`, route handlers pass `request.headers`; anything else about the user is loaded from the database by id (see `app/page.tsx`).
 - `/` redirects to `/login` without a session; `/login` and `/signup` redirect to `/` with one, or to their `?next=` path, which `safeNext` (`lib/safe-next.ts`) limits to this site.
 

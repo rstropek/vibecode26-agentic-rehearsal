@@ -17,6 +17,8 @@ const baseURL = `http://localhost:${process.env.E2E_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // *.model.spec.ts calls the real model; only `npm run test:e2e:model` (E2E_MODEL=1) runs it, never QA or CI.
+  testIgnore: process.env.E2E_MODEL ? [] : ["**/*.model.spec.ts"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -34,6 +36,7 @@ export default defineConfig({
       NEXT_DIST_DIR: process.env.E2E_DIST_DIR,
       DATABASE_URL: process.env.E2E_DATABASE_URL,
       BETTER_AUTH_URL: baseURL,
+      COPILOTKIT_TELEMETRY_DISABLED: "true",
     },
     reuseExistingServer: false,
     timeout: 120_000,

@@ -39,3 +39,28 @@ body {
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* CopilotKit's chat (app/lissie-chat.tsx) reads shadcn tokens on [data-copilotkit]; point them at ours.
+   Our --muted means text, theirs a surface, so map through the --color-* names. */
+.lissie-chat [data-copilotkit] {
+  --background: var(--color-paper-raised);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper-raised);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-paper-raised);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-ink);
+  --primary-foreground: var(--color-paper);
+  --secondary: var(--color-paper);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-paper);
+  --muted-foreground: var(--color-muted);
+  --accent: var(--color-paper);
+  --accent-foreground: var(--color-ink);
+  --destructive: var(--color-danger);
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-amber);
+  --cpk-font-sans: var(--font-bricolage), system-ui, sans-serif;
+  --cpk-default-font-family: var(--font-bricolage), system-ui, sans-serif;
+}

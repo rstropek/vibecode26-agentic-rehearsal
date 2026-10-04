@@ -5,6 +5,7 @@
 - Drizzle ORM on SQLite through `@libsql/client`, stored in the local file named by `DATABASE_URL` (`file:./data/app.db`, gitignored via `data/.gitignore`).
 - `lib/db.ts` is the only module that opens the database; everything else imports its `db`, and its `server-only` import makes the build fail if client code imports it.
 - Tables live in `db/schema.ts` and migrations in `db/migrations/`, configured in `drizzle.config.ts`; Better Auth's tables are generated into `db/auth-schema.ts` (see [auth.md](auth.md)) and re-exported next to `todos`.
+- Mastra memory keeps its own `mastra_*` tables in the same file through `db.$client`, and creates them itself on first use; they are not in `db/schema.ts` or `db/migrations/` (see [agent.md](agent.md)).
 - Schema changes go through `npm run db:generate`, a review of the generated SQL, then `npm run db:migrate`; tests and the e2e server migrate their own temp databases, but `data/app.db` needs `db:migrate` by hand.
 
 ## Design decisions

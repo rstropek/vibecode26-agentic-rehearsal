@@ -2,10 +2,11 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth-actions";
+import { LissieChat } from "@/app/lissie-chat";
 import { Button } from "@/components/ui/button";
-import { PageShell } from "@/components/ui/page-shell";
 import { user } from "@/db/schema";
 import { db } from "@/lib/db";
+import { lissieThreadId } from "@/lib/lissie";
 import { getUserId } from "@/lib/session";
 
 export default async function Home() {
@@ -19,13 +20,25 @@ export default async function Home() {
   if (!me) redirect("/login");
 
   return (
-    <PageShell
-      title={`Hi, ${me.name}.`}
-      lede="Lissie is still sharpening her claws on your lists. Check back soon."
-    >
-      <form action={signOut}>
-        <Button variant="quiet">Sign out</Button>
-      </form>
-    </PageShell>
+    <div className="flex h-dvh flex-col">
+      <header className="flex items-center justify-between gap-4 px-6 pt-6 sm:pr-[12vw] sm:pl-[12vw]">
+        <p className="text-lg font-bold tracking-tight text-ink">todo-cat</p>
+        <form action={signOut}>
+          <Button variant="quiet">Sign out</Button>
+        </form>
+      </header>
+      <main className="flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-10 pb-6 sm:ml-[12vw] sm:px-0">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl leading-[1.05] font-extrabold tracking-tight text-balance text-ink sm:text-5xl">
+            Hi, {me.name}.
+          </h1>
+          <p className="text-lg leading-relaxed text-muted">
+            Lissie keeps your list. Ask her what comes next, if she&apos;s in
+            the mood.
+          </p>
+        </div>
+        <LissieChat threadId={lissieThreadId(userId)} />
+      </main>
+    </div>
   );
 }

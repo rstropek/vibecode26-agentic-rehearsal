@@ -10,6 +10,7 @@
 
 - `npm test` runs Vitest once; `npm run test:watch` runs it in watch mode.
 - `npm run test:e2e` runs Playwright; pass a file or `--ui` after `--`, e.g. `npm run test:e2e -- --ui`.
+- `npm run test:e2e:model` runs only `e2e/*.model.spec.ts`, which call the real model; `playwright.config.ts` ignores them unless `E2E_MODEL` is set, so QA and CI never pay for or depend on a model.
 
 ## QA script
 
@@ -42,6 +43,7 @@
 - The e2e server shares nothing with `npm run dev` or another checkout running at the same time: its own free port, dist dir, freshly migrated temp database, and `BETTER_AUTH_URL`, overridable with the `E2E_*` variables in `playwright.config.ts`.
 - The CLI integration test (`cli/src/cli.test.ts`) starts its own `next dev` the same way; see [cli.md](cli.md).
 - Each e2e test signs up its own user with a unique email, so tests run in parallel against one database without cleanup.
+- Vitest tests that run Lissie mock `@/lib/lissie-model` with Mastra's `createMockModel`, so they exercise the real runtime, memory, and database without a network call.
 
 ## Gotchas
 
