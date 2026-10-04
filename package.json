@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:model": "E2E_MODEL=1 playwright test model.spec",
+    "test:e2e:model:todos": "E2E_MODEL=1 playwright test todos.model.spec",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:reset": "node scripts/db-reset.mts && drizzle-kit migrate",

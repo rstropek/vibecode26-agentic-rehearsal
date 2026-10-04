@@ -13,8 +13,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 A to-do list web app whose lists are kept by Lissie, a cat with attitude: a Mastra agent you chat with on `/`.
 Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the `todo-cat` CLI, a REST client for agents and humans).
 All todo logic lives in `lib/todo-service.ts`; the REST adapter `/api/todos` (`app/api/todos/`) exposes it and the CLI calls that.
-Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`.
-Not built yet: a todo list in the browser, Lissie's tools (she can talk about the list but not read or change it), and MCP.
+Lissie (`lib/lissie.ts`) runs on OpenRouter with Mastra memory and is served to a CopilotKit chat on `/` through `/api/copilotkit`; her tools (`lib/lissie-tools.ts`) list, add, and complete the signed-in user's todos, shown in a read-only list next to the chat.
+Not built yet: editing todos in the browser other than through Lissie, and MCP.
 `README.md` is still the create-next-app boilerplate; this file and `tech-docs/` are the project docs.
 
 ## First-time setup
@@ -31,7 +31,8 @@ Not built yet: a todo list in the browser, Lissie's tools (she can talk about th
 - `npx todo-cat --help` runs the CLI against `TODO_CAT_URL` (default http://localhost:3000); `npm run build -w cli` rebuilds it.
 - `npm test` runs the Vitest unit and integration tests once.
 - `npm run test:e2e` runs the Playwright end-to-end tests in Chromium against its own dev server.
-- `npm run test:e2e:model` runs the chat e2e that calls the real model (needs `OPENROUTER_API_KEY`); it is not part of QA or CI.
+- `npm run test:e2e:model` runs the e2e tests that call the real model (needs `OPENROUTER_API_KEY`); they are not part of QA or CI.
+- `npm run test:e2e:model:todos` runs only the model e2e where Lissie adds "buy milk" and the list next to the chat shows it.
 - `npm run db:generate` turns schema changes in `db/schema.ts` into a migration in `db/migrations/`.
 - `npm run db:migrate` applies pending migrations to the database in `DATABASE_URL`.
 - `npm run db:reset` deletes the local database file and migrates a fresh one.
@@ -77,7 +78,7 @@ Index:
 - [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
 - [tech-docs/rest-api.md](tech-docs/rest-api.md): the `/api/todos` endpoints, getting a bearer token with curl, and the adapter's design decisions.
-- [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, the CopilotKit runtime and its route authorization, history replay, and the chat UI.
+- [tech-docs/agent.md](tech-docs/agent.md): Lissie's model, memory and threads, her tools and how they get the user id, the CopilotKit runtime and its route authorization, history replay, and the chat UI with the list next to it.
 - [tech-docs/cli.md](tech-docs/cli.md): the `todo-cat` CLI, its device-flow login and `/device` approval page, output and exit-code conventions, the `todo-cat-cli` agent skill, build, and tests.
 
 ## Keeping this map current

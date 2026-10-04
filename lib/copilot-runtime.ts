@@ -13,13 +13,14 @@ import { z } from "zod";
 import {
   LISSIE_AGENT_ID,
   lissie,
+  lissieRequestContext,
   lissieThreadId,
   loadLissieHistory,
 } from "@/lib/lissie";
 
 // The CopilotKit runtime that serves Lissie over AG-UI at /api/copilotkit; see tech-docs/agent.md.
 // The route resolves the signed-in user first and builds this handler per request around their id,
-// so the agent's memory scope and every authorization decision come from the server session.
+// so the agent's memory scope, the user its tools act for, and every authorization decision come from the server session.
 
 export const COPILOTKIT_BASE_PATH = "/api/copilotkit";
 
@@ -107,6 +108,9 @@ export function createLissieHandler(
         agentId: LISSIE_AGENT_ID,
         agent: lissie,
         resourceId: userId,
+        // The only way the user id reaches Lissie's tools (lib/lissie-tools.ts); the bridge adds the client's AG-UI
+        // context under its own "ag-ui" key and never touches these.
+        requestContext: lissieRequestContext(userId),
       }),
     },
     runner: new LissieRunner(userId),

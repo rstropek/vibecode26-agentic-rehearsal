@@ -11,6 +11,7 @@
 - `npm test` runs Vitest once; `npm run test:watch` runs it in watch mode.
 - `npm run test:e2e` runs Playwright; pass a file or `--ui` after `--`, e.g. `npm run test:e2e -- --ui`.
 - `npm run test:e2e:model` runs only `e2e/*.model.spec.ts`, which call the real model; `playwright.config.ts` ignores them unless `E2E_MODEL` is set, so QA and CI never pay for or depend on a model.
+- `npm run test:e2e:model:todos` runs only `e2e/todos.model.spec.ts`, Lissie's tools against the real model.
 
 ## QA script
 
@@ -43,7 +44,7 @@
 - The e2e server shares nothing with `npm run dev` or another checkout running at the same time: its own free port, dist dir, freshly migrated temp database, and `BETTER_AUTH_URL`, overridable with the `E2E_*` variables in `playwright.config.ts`.
 - The CLI integration test (`cli/src/cli.test.ts`) starts its own `next dev` the same way; see [cli.md](cli.md).
 - Each e2e test signs up its own user with a unique email, so tests run in parallel against one database without cleanup.
-- Vitest tests that run Lissie mock `@/lib/lissie-model` with Mastra's `createMockModel`, so they exercise the real runtime, memory, and database without a network call.
+- Vitest tests that run Lissie mock `@/lib/lissie-model` with Mastra's `MastraLanguageModelV2Mock` and a scripted `doStream` (text, or a tool call for "Add <title>"), so they exercise the real runtime, tools, memory, and database without a network call.
 
 ## Gotchas
 
@@ -56,5 +57,6 @@
 - Vitest does not load `.env`, so tests that import `lib/db.ts` or `lib/auth.ts` stub `DATABASE_URL` and the `BETTER_AUTH_*` variables before a dynamic import; see `lib/auth.test.ts`.
 - Testing Library's automatic cleanup needs Vitest globals, which are off, so `vitest.setup.ts` calls `cleanup()` after each test.
 - Vitest cannot render async Server Components; test them through Playwright.
+- A test that calls a Mastra tool's `execute` directly passes `observe: noopObserve` (from `@mastra/core/tools`) next to the request context, because the context type requires it.
 - Next.js renders its own empty `role="alert"` route announcer, so e2e tests match a form error with `getByRole("alert").filter({ hasText })`, not by role alone.
 - Vitest 5 needs `@types/node` 22 or newer, so the root pins `@types/node` to the Node 24 runtime.
