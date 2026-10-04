@@ -4,7 +4,7 @@
 
 - Drizzle ORM on SQLite through `@libsql/client`, stored in the local file named by `DATABASE_URL` (`file:./data/app.db`, gitignored via `data/.gitignore`).
 - `lib/db.ts` is the only module that opens the database; everything else imports its `db`, and its `server-only` import makes the build fail if client code imports it.
-- Tables live in `db/schema.ts` and migrations in `db/migrations/`, configured in `drizzle.config.ts`; so far the only tables are Better Auth's, generated into `db/auth-schema.ts` (see [auth.md](auth.md)).
+- Tables live in `db/schema.ts` and migrations in `db/migrations/`, configured in `drizzle.config.ts`; Better Auth's tables are generated into `db/auth-schema.ts` (see [auth.md](auth.md)) and re-exported next to `todos`.
 - Schema changes go through `npm run db:generate`, a review of the generated SQL, then `npm run db:migrate`; the commands are listed in AGENTS.md.
 
 ## Design decisions

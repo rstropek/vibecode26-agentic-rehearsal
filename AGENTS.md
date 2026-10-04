@@ -11,7 +11,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # todo-cat
 
 A to-do list web app whose lists are kept by Lissie, a cat with attitude (an AI agent, coming later).
-Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI), both still empty.
+Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better Auth (email and password), plus npm workspaces `contract/` (shared zod schemas) and `cli/` (the todo-cat CLI, still empty).
+All todo logic lives in `lib/todo-service.ts`; adapters (REST, CLI, agent tools) are not built yet.
 
 ## Commands
 
@@ -23,6 +24,7 @@ Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better
 - `npm run db:generate` turns schema changes in `db/schema.ts` into a migration in `db/migrations/`.
 - `npm run db:migrate` applies pending migrations to the database in `DATABASE_URL`.
 - `npm run db:reset` deletes the local database file and migrates a fresh one.
+- `npm run db:seed` creates the demo user `demo@todo-cat.dev` (password `cat-person-2026`) and resets their todos; safe to rerun.
 - `npm run auth:generate` regenerates Better Auth's Drizzle tables in `db/auth-schema.ts` after auth plugins or options change.
 - `npm run lint` runs `biome check` (lint, format, import order).
 - `npm run typecheck` generates Next.js route types and type-checks all workspaces.
@@ -57,7 +59,8 @@ Next.js 16 App Router app at the repo root with Drizzle ORM on SQLite and Better
 
 Index:
 
-- [tech-docs/workspaces.md](tech-docs/workspaces.md): workspace layout and why it exists before its content does.
+- [tech-docs/architecture.md](tech-docs/architecture.md): the todo service, its ownership rules, the contract, adapters, and the dev seed.
+- [tech-docs/workspaces.md](tech-docs/workspaces.md): workspace layout, why the workspaces exist, and their gotchas.
 - [tech-docs/database.md](tech-docs/database.md): Drizzle on SQLite, the single db module, migrations, and their gotchas.
 - [tech-docs/testing.md](tech-docs/testing.md): test strategy, QA script, CI, and gotchas for Vitest and Playwright.
 - [tech-docs/auth.md](tech-docs/auth.md): Better Auth setup, the single `getUserId` session reader, auth pages, schema generation, and gotchas.
